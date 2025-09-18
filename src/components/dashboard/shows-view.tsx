@@ -1,0 +1,232 @@
+'use client';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useIPTVStore } from '@/lib/store';
+import { tauriIPTVService } from '@/lib/tauri-iptv-service';
+import type { Show } from '@/types/iptv';
+import { Grid3X3, List, MonitorPlay, Play, Search, Star } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+export function ShowsView() {
+  const {
+    showCategories,
+    shows,
+    setShows,
+    selectedCategory,
+    setSelectedCategory,
+    favorites,
+    addFavorite,
+    removeFavorite
+  } = useIPTVStore();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isLoading, setIsLoading] = useState(false);
+  const [filteredShows, setFilteredShows] = useState<Show[]>([]);
+
+  useEffect(() => {
+    const loadShows = async () => {
+      setIsLoading(true);
+      try {
+        const showData = await tauriIPTVService.getShows({
+          categoryId: selectedCategory || undefined,
+          limit: 50
+        });
+        setShows(showData);
+      } catch (error) {
+        console.error('Failed to load shows:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadShows();
+  }, [selectedCategory, setShows]);
+
+  useEffect(() => {
+    let filtered = shows;
+    if (searchQuery) {
+      filtered = filtered.filter(show =>
+        show.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    setFilteredShows(filtered);
+  }, [shows, searchQuery]);
+
+  const handleViewShow = (show: Show) => {
+    alert(`Ver detalhes da série: ${show.name}`);
+  };
+
+  const handleToggleFavorite = (show: Show) => {
+    const isFavorite = favorites.some(fav => fav.id === show.id && fav.type === 'show');
+
+    if (isFavorite) {
+      removeFavorite(show.id);
+    } else {
+      addFavorite({
+        id: show.id,
+        type: 'show',
+        name: show.name,
+        streamIcon: show.streamIcon,
+        addedAt: new Date().toISOString()
+      });
+    }
+  };
+
+  const isFavorite = (showId: string) => {
+    return favorites.some(fav => fav.id === showId && fav.type === 'show');
+  };
+
+  return (
+    <div className="flex-1 flex flex-col">
+      <div className="border-b p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Séries</h1>
+            <p className="text-muted-foreground">
+              {filteredShows.length} séries disponíveis
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex gap-4 mt-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar séries..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+
+          <Select
+            value={selectedCategory || 'all'}
+            onValueChange={(value) => setSelectedCategory(value === 'all' ? null : value)}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as categorias</SelectItem>
+              {showCategories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <ScrollArea className="flex-1">
+        <div className="p-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <LoadingSpinner size="lg" />
+            </div>
+          ) : filteredShows.length === 0 ? (
+            <div className="text-center py-12">
+              <MonitorPlay className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">Nenhuma série encontrada</h3>
+              <p className="text-muted-foreground">
+                {searchQuery ? 'Tente ajustar sua busca' : 'Nenhuma série disponível nesta categoria'}
+              </p>
+            </div>
+          ) : (
+            <div className={
+              viewMode === 'grid'
+                ? 'grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                : 'space-y-2'
+            }>
+              {filteredShows.map((show) => (
+                <Card key={show.id} className="group cursor-pointer transition-all hover:shadow-md">
+                  <CardContent className="p-4">
+                    <div className="mb-3">
+                      {show.streamIcon ? (
+                        <img
+                          src={show.streamIcon}
+                          alt={show.name}
+                          className="h-32 w-full rounded object-cover"
+                        />
+                      ) : (
+                        <div className="h-32 w-full rounded bg-muted flex items-center justify-center">
+                          <MonitorPlay className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-center">
+                      <h3 className="font-semibold text-sm truncate mb-1">
+                        {show.name}
+                      </h3>
+                      <div className="flex items-center justify-center gap-2 mb-3">
+                        {show.year && (
+                          <Badge variant="secondary" className="text-xs">
+                            {show.year}
+                          </Badge>
+                        )}
+                        {show.rating && (
+                          <Badge variant="outline" className="text-xs">
+                            ⭐ {show.rating}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleViewShow(show)}
+                        className="flex-1"
+                      >
+                        <Play className="h-4 w-4 mr-1" />
+                        Ver Série
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleToggleFavorite(show)}
+                        className={isFavorite(show.id) ? 'text-yellow-600' : ''}
+                      >
+                        {isFavorite(show.id) ? (
+                          <Star className="h-4 w-4 fill-current" />
+                        ) : (
+                          <Star className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
