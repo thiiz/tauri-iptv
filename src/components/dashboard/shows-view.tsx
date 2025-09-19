@@ -23,6 +23,7 @@ export function ShowsView() {
     showCategories,
     shows,
     loadShows,
+    loadShowCategories,
     fetchShows,
     selectedCategory,
     setSelectedCategory,
@@ -38,20 +39,21 @@ export function ShowsView() {
   const [filteredShows, setFilteredShows] = useState<Show[]>([]);
 
   useEffect(() => {
-    const loadShowsData = async () => {
+    const loadData = async () => {
       setIsLoading(true);
       try {
-        // Load shows from IndexedDB only
+        // Load categories and shows from IndexedDB
+        await loadShowCategories();
         await loadShows(selectedCategory || undefined);
       } catch (error) {
-        console.error('Failed to load shows:', error);
+        console.error('Failed to load data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadShowsData();
-  }, [selectedCategory, loadShows]);
+    loadData();
+  }, [selectedCategory, loadShows, loadShowCategories]);
 
   useEffect(() => {
     let filtered = shows;
@@ -134,25 +136,17 @@ export function ShowsView() {
             onValueChange={(value) =>
               setSelectedCategory(value === 'all' ? null : value)
             }
-            disabled={!contentDownloaded.shows}
           >
             <SelectTrigger className='w-48'>
-              <SelectValue
-                placeholder={
-                  contentDownloaded.shows
-                    ? 'Categoria'
-                    : 'Faça download primeiro'
-                }
-              />
+              <SelectValue placeholder='Categoria' />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value='all'>Todas as categorias</SelectItem>
-              {contentDownloaded.shows &&
-                showCategories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
+              {showCategories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

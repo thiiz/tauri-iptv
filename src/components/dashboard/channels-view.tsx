@@ -24,6 +24,7 @@ export function ChannelsView() {
     channelCategories,
     channels,
     loadChannels,
+    loadChannelCategories,
     fetchChannels,
     selectedCategory,
     setSelectedCategory,
@@ -40,20 +41,21 @@ export function ChannelsView() {
   const [filteredChannels, setFilteredChannels] = useState<Channel[]>([]);
 
   useEffect(() => {
-    const loadChannelsData = async () => {
+    const loadData = async () => {
       setIsLoading(true);
       try {
-        // Load channels from IndexedDB only
+        // Load categories and channels from IndexedDB
+        await loadChannelCategories();
         await loadChannels(selectedCategory || undefined);
       } catch (error) {
-        console.error('Failed to load channels:', error);
+        console.error('Failed to load data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadChannelsData();
-  }, [selectedCategory, loadChannels]);
+    loadData();
+  }, [selectedCategory, loadChannels, loadChannelCategories]);
 
   useEffect(() => {
     let filtered = channels;
@@ -166,25 +168,17 @@ export function ChannelsView() {
             onValueChange={(value) =>
               setSelectedCategory(value === 'all' ? null : value)
             }
-            disabled={!contentDownloaded.channels}
           >
             <SelectTrigger className='w-48'>
-              <SelectValue
-                placeholder={
-                  contentDownloaded.channels
-                    ? 'Categoria'
-                    : 'Faça download primeiro'
-                }
-              />
+              <SelectValue placeholder='Categoria' />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value='all'>Todas as categorias</SelectItem>
-              {contentDownloaded.channels &&
-                channelCategories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
+              {channelCategories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

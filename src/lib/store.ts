@@ -495,14 +495,8 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
 
   loadChannelCategories: async () => {
     try {
-      const { currentProfileId, contentDownloaded } = get();
+      const { currentProfileId } = get();
       if (!currentProfileId) return;
-
-      // Only load categories if content has been downloaded
-      if (!contentDownloaded.channels) {
-        set({ channelCategories: [] });
-        return;
-      }
 
       const categories = await indexedDBService.getCategories(
         'channel',
@@ -517,14 +511,8 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
 
   loadMovieCategories: async () => {
     try {
-      const { currentProfileId, contentDownloaded } = get();
+      const { currentProfileId } = get();
       if (!currentProfileId) return;
-
-      // Only load categories if content has been downloaded
-      if (!contentDownloaded.movies) {
-        set({ movieCategories: [] });
-        return;
-      }
 
       const categories = await indexedDBService.getCategories(
         'movie',
@@ -539,14 +527,8 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
 
   loadShowCategories: async () => {
     try {
-      const { currentProfileId, contentDownloaded } = get();
+      const { currentProfileId } = get();
       if (!currentProfileId) return;
-
-      // Only load categories if content has been downloaded
-      if (!contentDownloaded.shows) {
-        set({ showCategories: [] });
-        return;
-      }
 
       const categories = await indexedDBService.getCategories(
         'show',
