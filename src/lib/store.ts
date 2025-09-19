@@ -495,14 +495,26 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
 
   loadChannelCategories: async () => {
     try {
-      const { currentProfileId } = get();
+      const { currentProfileId, contentDownloaded } = get();
       if (!currentProfileId) return;
+
+      // Only load categories if content has been downloaded
+      if (!contentDownloaded.channels) {
+        set({ channelCategories: [] });
+        return;
+      }
 
       const categories = await indexedDBService.getCategories(
         'channel',
         currentProfileId
       );
-      set({ channelCategories: categories });
+
+      // If no cached categories, fetch from API
+      if (categories.length === 0) {
+        await get().fetchChannelCategories();
+      } else {
+        set({ channelCategories: categories });
+      }
     } catch (error) {
       console.error('Failed to load channel categories:', error);
     }
@@ -510,14 +522,26 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
 
   loadMovieCategories: async () => {
     try {
-      const { currentProfileId } = get();
+      const { currentProfileId, contentDownloaded } = get();
       if (!currentProfileId) return;
+
+      // Only load categories if content has been downloaded
+      if (!contentDownloaded.movies) {
+        set({ movieCategories: [] });
+        return;
+      }
 
       const categories = await indexedDBService.getCategories(
         'movie',
         currentProfileId
       );
-      set({ movieCategories: categories });
+
+      // If no cached categories, fetch from API
+      if (categories.length === 0) {
+        await get().fetchMovieCategories();
+      } else {
+        set({ movieCategories: categories });
+      }
     } catch (error) {
       console.error('Failed to load movie categories:', error);
     }
@@ -525,14 +549,26 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
 
   loadShowCategories: async () => {
     try {
-      const { currentProfileId } = get();
+      const { currentProfileId, contentDownloaded } = get();
       if (!currentProfileId) return;
+
+      // Only load categories if content has been downloaded
+      if (!contentDownloaded.shows) {
+        set({ showCategories: [] });
+        return;
+      }
 
       const categories = await indexedDBService.getCategories(
         'show',
         currentProfileId
       );
-      set({ showCategories: categories });
+
+      // If no cached categories, fetch from API
+      if (categories.length === 0) {
+        await get().fetchShowCategories();
+      } else {
+        set({ showCategories: categories });
+      }
     } catch (error) {
       console.error('Failed to load show categories:', error);
     }

@@ -13,8 +13,8 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { useIPTVStore } from '@/lib/store';
 import { iptvDataService } from '@/lib/iptv-data-service';
+import { useIPTVStore } from '@/lib/store';
 import type { Movie } from '@/types/iptv';
 import { Film, Grid3X3, List, Play, Search, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -30,7 +30,8 @@ export function MoviesView() {
     favorites,
     addFavorite,
     removeFavorite,
-    addToHistory
+    addToHistory,
+    contentDownloaded
   } = useIPTVStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -154,17 +155,25 @@ export function MoviesView() {
             onValueChange={(value) =>
               setSelectedCategory(value === 'all' ? null : value)
             }
+            disabled={!contentDownloaded.movies}
           >
             <SelectTrigger className='w-48'>
-              <SelectValue placeholder='Categoria' />
+              <SelectValue
+                placeholder={
+                  contentDownloaded.movies
+                    ? 'Categoria'
+                    : 'Faça download primeiro'
+                }
+              />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value='all'>Todas as categorias</SelectItem>
-              {movieCategories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
+              {contentDownloaded.movies &&
+                movieCategories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>

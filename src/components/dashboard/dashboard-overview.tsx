@@ -11,9 +11,7 @@ import {
 } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIPTVStore } from '@/lib/store';
-import { iptvDataService } from '@/lib/iptv-data-service';
 import type { Channel, Movie, Show } from '@/types/iptv';
-import { DownloadSection } from './download-section';
 import {
   Clock,
   Film,
@@ -25,6 +23,7 @@ import {
   Tv
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { DownloadSection } from './download-section';
 
 export function DashboardOverview() {
   const {
@@ -83,25 +82,31 @@ export function DashboardOverview() {
   const stats = [
     {
       title: 'Canais',
-      value: channelCategories.length,
+      value: contentDownloaded.channels ? channelCategories.length : 0,
       icon: Tv,
-      description: 'Categorias disponíveis',
+      description: contentDownloaded.channels
+        ? 'Categorias disponíveis'
+        : 'Faça download para ver',
       color: 'text-blue-600',
       bgColor: 'bg-blue-100 dark:bg-blue-900'
     },
     {
       title: 'Filmes',
-      value: movieCategories.length,
+      value: contentDownloaded.movies ? movieCategories.length : 0,
       icon: Film,
-      description: 'Categorias de filmes',
+      description: contentDownloaded.movies
+        ? 'Categorias de filmes'
+        : 'Faça download para ver',
       color: 'text-green-600',
       bgColor: 'bg-green-100 dark:bg-green-900'
     },
     {
       title: 'Séries',
-      value: showCategories.length,
+      value: contentDownloaded.shows ? showCategories.length : 0,
       icon: MonitorPlay,
-      description: 'Categorias de séries',
+      description: contentDownloaded.shows
+        ? 'Categorias de séries'
+        : 'Faça download para ver',
       color: 'text-purple-600',
       bgColor: 'bg-purple-100 dark:bg-purple-900'
     },

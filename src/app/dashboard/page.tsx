@@ -3,8 +3,8 @@
 import { DashboardContent } from '@/components/dashboard/dashboard-content';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { useProfileInitialization } from '@/hooks/use-profile-initialization';
-import { useIPTVStore } from '@/lib/store';
 import { iptvDataService } from '@/lib/iptv-data-service';
+import { useIPTVStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -29,7 +29,8 @@ export default function DashboardPage() {
     fetchServerInfo,
     checkContentDownloaded,
     setLoading,
-    setError
+    setError,
+    contentDownloaded
   } = useIPTVStore();
 
   useEffect(() => {
@@ -61,11 +62,19 @@ export default function DashboardPage() {
         await Promise.all([
           fetchUserProfile(),
           fetchServerInfo(),
-          fetchChannelCategories(),
-          fetchMovieCategories(),
-          fetchShowCategories(),
           checkContentDownloaded()
         ]);
+
+        // Fetch categories only if content has been downloaded
+        if (contentDownloaded.channels) {
+          await fetchChannelCategories();
+        }
+        if (contentDownloaded.movies) {
+          await fetchMovieCategories();
+        }
+        if (contentDownloaded.shows) {
+          await fetchShowCategories();
+        }
       } catch (error) {
         console.error('Failed to initialize dashboard:', error);
         setError('Failed to load data. Please check your connection.');

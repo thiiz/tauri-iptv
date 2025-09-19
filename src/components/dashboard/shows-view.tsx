@@ -14,7 +14,6 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { useIPTVStore } from '@/lib/store';
-import { iptvDataService } from '@/lib/iptv-data-service';
 import type { Show } from '@/types/iptv';
 import { Grid3X3, List, MonitorPlay, Play, Search, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -29,7 +28,8 @@ export function ShowsView() {
     setSelectedCategory,
     favorites,
     addFavorite,
-    removeFavorite
+    removeFavorite,
+    contentDownloaded
   } = useIPTVStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,17 +134,25 @@ export function ShowsView() {
             onValueChange={(value) =>
               setSelectedCategory(value === 'all' ? null : value)
             }
+            disabled={!contentDownloaded.shows}
           >
             <SelectTrigger className='w-48'>
-              <SelectValue placeholder='Categoria' />
+              <SelectValue
+                placeholder={
+                  contentDownloaded.shows
+                    ? 'Categoria'
+                    : 'Faça download primeiro'
+                }
+              />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value='all'>Todas as categorias</SelectItem>
-              {showCategories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
+              {contentDownloaded.shows &&
+                showCategories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>

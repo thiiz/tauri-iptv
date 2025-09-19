@@ -164,7 +164,10 @@ export class IPTVDataService {
   async getChannelCategories(forceRefresh = false): Promise<Category[]> {
     if (!forceRefresh) {
       await this.ensureDBInitialized();
-      const cached = await indexedDBService.getCategories('channel');
+      const cached = await indexedDBService.getCategories(
+        'channel',
+        this.currentProfile?.id
+      );
       if (cached.length > 0) {
         return cached;
       }
@@ -201,7 +204,10 @@ export class IPTVDataService {
   async getMovieCategories(forceRefresh = false): Promise<Category[]> {
     if (!forceRefresh) {
       await this.ensureDBInitialized();
-      const cached = await indexedDBService.getCategories('movie');
+      const cached = await indexedDBService.getCategories(
+        'movie',
+        this.currentProfile?.id
+      );
       if (cached.length > 0) {
         return cached;
       }
@@ -238,7 +244,10 @@ export class IPTVDataService {
   async getShowCategories(forceRefresh = false): Promise<Category[]> {
     if (!forceRefresh) {
       await this.ensureDBInitialized();
-      const cached = await indexedDBService.getCategories('show');
+      const cached = await indexedDBService.getCategories(
+        'show',
+        this.currentProfile?.id
+      );
       if (cached.length > 0) {
         return cached;
       }
