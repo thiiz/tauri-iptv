@@ -22,9 +22,9 @@ export default function DashboardPage() {
     setAuthenticated,
     setUserProfile,
     setServerInfo,
-    fetchChannelCategories,
-    fetchMovieCategories,
-    fetchShowCategories,
+    loadChannelCategories,
+    loadMovieCategories,
+    loadShowCategories,
     fetchUserProfile,
     fetchServerInfo,
     checkContentDownloaded,
@@ -65,15 +65,15 @@ export default function DashboardPage() {
           checkContentDownloaded()
         ]);
 
-        // Fetch categories only if content has been downloaded
+        // Load categories only if content has been downloaded
         if (contentDownloaded.channels) {
-          await fetchChannelCategories();
+          await loadChannelCategories();
         }
         if (contentDownloaded.movies) {
-          await fetchMovieCategories();
+          await loadMovieCategories();
         }
         if (contentDownloaded.shows) {
-          await fetchShowCategories();
+          await loadShowCategories();
         }
       } catch (error) {
         console.error('Failed to initialize dashboard:', error);

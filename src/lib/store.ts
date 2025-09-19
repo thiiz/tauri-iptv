@@ -509,12 +509,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
         currentProfileId
       );
 
-      // If no cached categories, fetch from API
-      if (categories.length === 0) {
-        await get().fetchChannelCategories();
-      } else {
-        set({ channelCategories: categories });
-      }
+      set({ channelCategories: categories });
     } catch (error) {
       console.error('Failed to load channel categories:', error);
     }
@@ -536,12 +531,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
         currentProfileId
       );
 
-      // If no cached categories, fetch from API
-      if (categories.length === 0) {
-        await get().fetchMovieCategories();
-      } else {
-        set({ movieCategories: categories });
-      }
+      set({ movieCategories: categories });
     } catch (error) {
       console.error('Failed to load movie categories:', error);
     }
@@ -563,12 +553,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
         currentProfileId
       );
 
-      // If no cached categories, fetch from API
-      if (categories.length === 0) {
-        await get().fetchShowCategories();
-      } else {
-        set({ showCategories: categories });
-      }
+      set({ showCategories: categories });
     } catch (error) {
       console.error('Failed to load show categories:', error);
     }
@@ -786,6 +771,11 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
         }));
       }
 
+      await indexedDBService.saveCategories(
+        'channel',
+        categories,
+        currentProfileId
+      );
       await indexedDBService.downloadChannels(currentProfileId, allChannels);
 
       set((state) => ({
@@ -848,6 +838,11 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
         }));
       }
 
+      await indexedDBService.saveCategories(
+        'movie',
+        categories,
+        currentProfileId
+      );
       await indexedDBService.downloadMovies(currentProfileId, allMovies);
 
       set((state) => ({
@@ -910,6 +905,11 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
         }));
       }
 
+      await indexedDBService.saveCategories(
+        'show',
+        categories,
+        currentProfileId
+      );
       await indexedDBService.downloadShows(currentProfileId, allShows);
 
       set((state) => ({
