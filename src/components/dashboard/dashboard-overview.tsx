@@ -46,17 +46,16 @@ export function DashboardOverview() {
     fetchMovies,
     fetchShows,
     setCurrentView,
-    checkContentDownloaded
+    checkContentDownloaded,
+    setError
   } = useIPTVStore();
 
   const [recentChannels, setRecentChannels] = useState<Channel[]>([]);
   const [recentMovies, setRecentMovies] = useState<Movie[]>([]);
   const [recentShows, setRecentShows] = useState<Show[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const loadRecentContent = async () => {
-      setIsLoading(true);
       try {
         // Check download status first
         await checkContentDownloaded();
@@ -65,8 +64,9 @@ export function DashboardOverview() {
         await Promise.all([loadChannels(), loadMovies(), loadShows()]);
       } catch (error) {
         console.error('Failed to load recent content:', error);
-      } finally {
-        setIsLoading(false);
+        setError(
+          'Failed to load recent content. Please try refreshing the page.'
+        );
       }
     };
 
@@ -402,7 +402,7 @@ export function DashboardOverview() {
                 <Button
                   variant='outline'
                   className='mt-4 w-full'
-                  onClick={() => setCurrentView('favorites' as any)}
+                  onClick={() => setCurrentView('history')}
                 >
                   Ver Histórico Completo
                 </Button>

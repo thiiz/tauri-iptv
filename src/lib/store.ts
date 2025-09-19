@@ -99,7 +99,14 @@ interface IPTVStore {
   setMovies: (movies: Movie[]) => Promise<void>;
   setShows: (shows: Show[]) => Promise<void>;
   setCurrentView: (
-    view: 'dashboard' | 'channels' | 'movies' | 'shows' | 'settings'
+    view:
+      | 'dashboard'
+      | 'channels'
+      | 'movies'
+      | 'shows'
+      | 'favorites'
+      | 'history'
+      | 'settings'
   ) => void;
   setSelectedCategory: (categoryId: string | null) => void;
   setLoading: (loading: boolean) => void;

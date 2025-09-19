@@ -40,7 +40,8 @@ export function ProfileManager() {
     setCurrentProfile,
     setAuthenticated,
     setUserProfile,
-    setServerInfo
+    setServerInfo,
+    setError
   } = useIPTVStore();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -112,6 +113,9 @@ export function ProfileManager() {
       await handleActivateProfile(profile);
     } catch (error) {
       console.error('Failed to add profile:', error);
+      setError(
+        'Failed to add profile. Please check your credentials and try again.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -124,6 +128,7 @@ export function ProfileManager() {
       console.log('Profile deleted successfully');
     } catch (error) {
       console.error('Failed to delete profile:', error);
+      setError('Failed to delete profile. Please try again.');
     }
   };
 
@@ -169,6 +174,9 @@ export function ProfileManager() {
       router.push('/dashboard');
     } catch (error) {
       console.error('Failed to activate profile:', error);
+      setError(
+        'Failed to activate profile. Please check your connection and try again.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -286,7 +294,14 @@ export function ProfileManager() {
                 </div>
               </div>
               <CardDescription>
-                {profile.config.username}@{new URL(profile.config.url).hostname}
+                {profile.config.username}@
+                {(() => {
+                  try {
+                    return new URL(profile.config.url).hostname;
+                  } catch {
+                    return 'invalid-url';
+                  }
+                })()}
               </CardDescription>
             </CardHeader>
             <CardContent>
