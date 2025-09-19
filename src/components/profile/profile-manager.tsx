@@ -24,10 +24,13 @@ import { iptvDataService } from '@/lib/iptv-data-service';
 import { profileServiceIndexedDB } from '@/lib/profile-service-indexeddb';
 import type { ProfileAccount, XtreamConfig } from '@/types/iptv';
 import { Play, Plus, Settings, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 // Using console.log instead of toast for now
 
 export function ProfileManager() {
+  const router = useRouter();
+
   const {
     profiles,
     currentProfileId,
@@ -163,7 +166,7 @@ export function ProfileManager() {
       console.log(`Switched to profile: ${profile.name}`);
 
       // Redirect to dashboard after successful activation
-      window.location.href = '/dashboard';
+      router.push('/dashboard');
     } catch (error) {
       console.error('Failed to activate profile:', error);
     } finally {
