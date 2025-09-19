@@ -42,13 +42,8 @@ export function ChannelsView() {
     const loadChannelsData = async () => {
       setIsLoading(true);
       try {
-        // Try to load from cache first
+        // Load channels from IndexedDB only
         await loadChannels(selectedCategory || undefined);
-
-        // If no cached data, fetch from API
-        if (channels.length === 0) {
-          await fetchChannels({ categoryId: selectedCategory || undefined });
-        }
       } catch (error) {
         console.error('Failed to load channels:', error);
       } finally {
@@ -57,7 +52,7 @@ export function ChannelsView() {
     };
 
     loadChannelsData();
-  }, [selectedCategory, loadChannels, fetchChannels, channels.length]);
+  }, [selectedCategory, loadChannels]);
 
   useEffect(() => {
     let filtered = channels;
@@ -197,12 +192,14 @@ export function ChannelsView() {
             <div className='py-12 text-center'>
               <Tv className='text-muted-foreground mx-auto mb-4 h-12 w-12' />
               <h3 className='mb-2 text-lg font-semibold'>
-                Nenhum canal encontrado
+                {searchQuery
+                  ? 'Nenhum canal encontrado'
+                  : 'Nenhum canal disponível'}
               </h3>
               <p className='text-muted-foreground'>
                 {searchQuery
                   ? 'Tente ajustar sua busca'
-                  : 'Nenhum canal disponível nesta categoria'}
+                  : 'Faça o download do conteúdo na página inicial para visualizar os canais'}
               </p>
             </div>
           ) : (

@@ -41,13 +41,8 @@ export function ShowsView() {
     const loadShowsData = async () => {
       setIsLoading(true);
       try {
-        // Try to load from cache first
+        // Load shows from IndexedDB only
         await loadShows(selectedCategory || undefined);
-
-        // If no cached data, fetch from API
-        if (shows.length === 0) {
-          await fetchShows({ categoryId: selectedCategory || undefined });
-        }
       } catch (error) {
         console.error('Failed to load shows:', error);
       } finally {
@@ -56,7 +51,7 @@ export function ShowsView() {
     };
 
     loadShowsData();
-  }, [selectedCategory, loadShows, fetchShows, shows.length]);
+  }, [selectedCategory, loadShows]);
 
   useEffect(() => {
     let filtered = shows;
@@ -165,12 +160,14 @@ export function ShowsView() {
             <div className='py-12 text-center'>
               <MonitorPlay className='text-muted-foreground mx-auto mb-4 h-12 w-12' />
               <h3 className='mb-2 text-lg font-semibold'>
-                Nenhuma série encontrada
+                {searchQuery
+                  ? 'Nenhuma série encontrada'
+                  : 'Nenhuma série disponível'}
               </h3>
               <p className='text-muted-foreground'>
                 {searchQuery
                   ? 'Tente ajustar sua busca'
-                  : 'Nenhuma série disponível nesta categoria'}
+                  : 'Faça o download do conteúdo na página inicial para visualizar as séries'}
               </p>
             </div>
           ) : (

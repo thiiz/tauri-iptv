@@ -480,7 +480,13 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
 
   loadChannelCategories: async () => {
     try {
-      const categories = await indexedDBService.getCategories('channel');
+      const { currentProfileId } = get();
+      if (!currentProfileId) return;
+
+      const categories = await indexedDBService.getCategories(
+        'channel',
+        currentProfileId
+      );
       set({ channelCategories: categories });
     } catch (error) {
       console.error('Failed to load channel categories:', error);
@@ -489,7 +495,13 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
 
   loadMovieCategories: async () => {
     try {
-      const categories = await indexedDBService.getCategories('movie');
+      const { currentProfileId } = get();
+      if (!currentProfileId) return;
+
+      const categories = await indexedDBService.getCategories(
+        'movie',
+        currentProfileId
+      );
       set({ movieCategories: categories });
     } catch (error) {
       console.error('Failed to load movie categories:', error);
@@ -498,7 +510,13 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
 
   loadShowCategories: async () => {
     try {
-      const categories = await indexedDBService.getCategories('show');
+      const { currentProfileId } = get();
+      if (!currentProfileId) return;
+
+      const categories = await indexedDBService.getCategories(
+        'show',
+        currentProfileId
+      );
       set({ showCategories: categories });
     } catch (error) {
       console.error('Failed to load show categories:', error);
@@ -507,7 +525,13 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
 
   loadChannels: async (categoryId?: string) => {
     try {
-      const channels = await indexedDBService.getChannels(categoryId);
+      const { currentProfileId } = get();
+      if (!currentProfileId) return;
+
+      const channels = await indexedDBService.getChannels(
+        categoryId,
+        currentProfileId
+      );
       set({ channels });
     } catch (error) {
       console.error('Failed to load channels:', error);
@@ -516,7 +540,13 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
 
   loadMovies: async (categoryId?: string) => {
     try {
-      const movies = await indexedDBService.getMovies(categoryId);
+      const { currentProfileId } = get();
+      if (!currentProfileId) return;
+
+      const movies = await indexedDBService.getMovies(
+        categoryId,
+        currentProfileId
+      );
       set({ movies });
     } catch (error) {
       console.error('Failed to load movies:', error);
@@ -525,7 +555,13 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
 
   loadShows: async (categoryId?: string) => {
     try {
-      const shows = await indexedDBService.getShows(categoryId);
+      const { currentProfileId } = get();
+      if (!currentProfileId) return;
+
+      const shows = await indexedDBService.getShows(
+        categoryId,
+        currentProfileId
+      );
       set({ shows });
     } catch (error) {
       console.error('Failed to load shows:', error);

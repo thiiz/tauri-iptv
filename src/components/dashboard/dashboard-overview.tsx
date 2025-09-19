@@ -38,6 +38,7 @@ export function DashboardOverview() {
     channels,
     movies,
     shows,
+    contentDownloaded,
     loadChannels,
     loadMovies,
     loadShows,
@@ -60,19 +61,8 @@ export function DashboardOverview() {
         // Check download status first
         await checkContentDownloaded();
 
-        // Load from cache first
+        // Load content from IndexedDB only
         await Promise.all([loadChannels(), loadMovies(), loadShows()]);
-
-        // If no cached data, fetch from API
-        if (channels.length === 0) {
-          await fetchChannels({ limit: 6 });
-        }
-        if (movies.length === 0) {
-          await fetchMovies({ limit: 6 });
-        }
-        if (shows.length === 0) {
-          await fetchShows({ limit: 6 });
-        }
       } catch (error) {
         console.error('Failed to load recent content:', error);
       } finally {
@@ -81,15 +71,7 @@ export function DashboardOverview() {
     };
 
     loadRecentContent();
-  }, [
-    loadChannels,
-    loadMovies,
-    loadShows,
-    fetchChannels,
-    fetchMovies,
-    fetchShows,
-    checkContentDownloaded
-  ]);
+  }, [loadChannels, loadMovies, loadShows, checkContentDownloaded]);
 
   // Update local state when store state changes
   useEffect(() => {
@@ -174,164 +156,42 @@ export function DashboardOverview() {
       </div>
 
       <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
-        {/* Recent Channels */}
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex items-center gap-2'>
-              <Tv className='h-5 w-5' />
-              Canais Recentes
-            </CardTitle>
-            <CardDescription>Últimos canais adicionados</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className='h-48'>
-              <div className='space-y-2'>
-                {recentChannels.map((channel) => (
-                  <div
-                    key={channel.id}
-                    className='hover:bg-muted flex cursor-pointer items-center justify-between rounded-lg p-2'
-                  >
-                    <div className='flex items-center gap-3'>
-                      {channel.streamIcon ? (
-                        <img
-                          src={channel.streamIcon}
-                          alt={channel.name}
-                          className='h-8 w-8 rounded object-cover'
-                        />
-                      ) : (
-                        <div className='bg-muted flex h-8 w-8 items-center justify-center rounded'>
-                          <Tv className='h-4 w-4' />
-                        </div>
-                      )}
-                      <div>
-                        <div className='text-sm font-medium'>
-                          {channel.name}
-                        </div>
-                        <div className='text-muted-foreground text-xs'>
-                          Canal #{channel.id}
-                        </div>
-                      </div>
-                    </div>
-                    <Button size='sm' variant='ghost'>
-                      <Play className='h-4 w-4' />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-            <Button
-              variant='outline'
-              className='mt-4 w-full'
-              onClick={() => setCurrentView('channels')}
-            >
-              Ver Todos os Canais
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Recent Movies */}
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex items-center gap-2'>
-              <Film className='h-5 w-5' />
-              Filmes Recentes
-            </CardTitle>
-            <CardDescription>Últimos filmes adicionados</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className='h-48'>
-              <div className='space-y-2'>
-                {recentMovies.map((movie) => (
-                  <div
-                    key={movie.id}
-                    className='hover:bg-muted flex cursor-pointer items-center justify-between rounded-lg p-2'
-                  >
-                    <div className='flex items-center gap-3'>
-                      {movie.streamIcon ? (
-                        <img
-                          src={movie.streamIcon}
-                          alt={movie.name}
-                          className='h-8 w-8 rounded object-cover'
-                        />
-                      ) : (
-                        <div className='bg-muted flex h-8 w-8 items-center justify-center rounded'>
-                          <Film className='h-4 w-4' />
-                        </div>
-                      )}
-                      <div>
-                        <div className='text-sm font-medium'>{movie.name}</div>
-                        <div className='text-muted-foreground text-xs'>
-                          {movie.year && `${movie.year} • `}
-                          {movie.rating && `⭐ ${movie.rating}`}
-                        </div>
-                      </div>
-                    </div>
-                    <Button size='sm' variant='ghost'>
-                      <Play className='h-4 w-4' />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-            <Button
-              variant='outline'
-              className='mt-4 w-full'
-              onClick={() => setCurrentView('movies')}
-            >
-              Ver Todos os Filmes
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Watch History */}
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex items-center gap-2'>
-              <History className='h-5 w-5' />
-              Histórico Recente
-            </CardTitle>
-            <CardDescription>Últimos itens assistidos</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className='h-48'>
-              <div className='space-y-2'>
-                {recentHistory.length > 0 ? (
-                  recentHistory.map((item) => (
+        {/* Recent Channels - Only show if downloaded */}
+        {contentDownloaded.channels && (
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <Tv className='h-5 w-5' />
+                Canais Recentes
+              </CardTitle>
+              <CardDescription>Últimos canais adicionados</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className='h-48'>
+                <div className='space-y-2'>
+                  {recentChannels.map((channel) => (
                     <div
-                      key={`${item.type}-${item.id}`}
+                      key={channel.id}
                       className='hover:bg-muted flex cursor-pointer items-center justify-between rounded-lg p-2'
                     >
                       <div className='flex items-center gap-3'>
-                        {item.streamIcon ? (
+                        {channel.streamIcon ? (
                           <img
-                            src={item.streamIcon}
-                            alt={item.name}
+                            src={channel.streamIcon}
+                            alt={channel.name}
                             className='h-8 w-8 rounded object-cover'
                           />
                         ) : (
                           <div className='bg-muted flex h-8 w-8 items-center justify-center rounded'>
-                            {item.type === 'channel' && (
-                              <Tv className='h-4 w-4' />
-                            )}
-                            {item.type === 'movie' && (
-                              <Film className='h-4 w-4' />
-                            )}
-                            {item.type === 'episode' && (
-                              <MonitorPlay className='h-4 w-4' />
-                            )}
+                            <Tv className='h-4 w-4' />
                           </div>
                         )}
                         <div>
-                          <div className='text-sm font-medium'>{item.name}</div>
+                          <div className='text-sm font-medium'>
+                            {channel.name}
+                          </div>
                           <div className='text-muted-foreground text-xs'>
-                            <Badge variant='secondary' className='text-xs'>
-                              {item.type === 'channel' && 'Canal'}
-                              {item.type === 'movie' && 'Filme'}
-                              {item.type === 'episode' && 'Episódio'}
-                            </Badge>
-                            <span className='ml-2'>
-                              {new Date(item.watchedAt).toLocaleDateString()}
-                            </span>
+                            Canal #{channel.id}
                           </div>
                         </div>
                       </div>
@@ -339,26 +199,217 @@ export function DashboardOverview() {
                         <Play className='h-4 w-4' />
                       </Button>
                     </div>
-                  ))
-                ) : (
-                  <div className='text-muted-foreground py-8 text-center'>
-                    <Clock className='mx-auto mb-2 h-8 w-8 opacity-50' />
-                    <p>Nenhum histórico ainda</p>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-            {recentHistory.length > 0 && (
+                  ))}
+                </div>
+              </ScrollArea>
               <Button
                 variant='outline'
                 className='mt-4 w-full'
-                onClick={() => setCurrentView('favorites' as any)}
+                onClick={() => setCurrentView('channels')}
               >
-                Ver Histórico Completo
+                Ver Todos os Canais
               </Button>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recent Movies - Only show if downloaded */}
+        {contentDownloaded.movies && (
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <Film className='h-5 w-5' />
+                Filmes Recentes
+              </CardTitle>
+              <CardDescription>Últimos filmes adicionados</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className='h-48'>
+                <div className='space-y-2'>
+                  {recentMovies.map((movie) => (
+                    <div
+                      key={movie.id}
+                      className='hover:bg-muted flex cursor-pointer items-center justify-between rounded-lg p-2'
+                    >
+                      <div className='flex items-center gap-3'>
+                        {movie.streamIcon ? (
+                          <img
+                            src={movie.streamIcon}
+                            alt={movie.name}
+                            className='h-8 w-8 rounded object-cover'
+                          />
+                        ) : (
+                          <div className='bg-muted flex h-8 w-8 items-center justify-center rounded'>
+                            <Film className='h-4 w-4' />
+                          </div>
+                        )}
+                        <div>
+                          <div className='text-sm font-medium'>
+                            {movie.name}
+                          </div>
+                          <div className='text-muted-foreground text-xs'>
+                            {movie.year && `${movie.year} • `}
+                            {movie.rating && `⭐ ${movie.rating}`}
+                          </div>
+                        </div>
+                      </div>
+                      <Button size='sm' variant='ghost'>
+                        <Play className='h-4 w-4' />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              <Button
+                variant='outline'
+                className='mt-4 w-full'
+                onClick={() => setCurrentView('movies')}
+              >
+                Ver Todos os Filmes
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recent Shows - Only show if downloaded */}
+        {contentDownloaded.shows && (
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <MonitorPlay className='h-5 w-5' />
+                Séries Recentes
+              </CardTitle>
+              <CardDescription>Últimas séries adicionadas</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className='h-48'>
+                <div className='space-y-2'>
+                  {recentShows.map((show) => (
+                    <div
+                      key={show.id}
+                      className='hover:bg-muted flex cursor-pointer items-center justify-between rounded-lg p-2'
+                    >
+                      <div className='flex items-center gap-3'>
+                        {show.streamIcon ? (
+                          <img
+                            src={show.streamIcon}
+                            alt={show.name}
+                            className='h-8 w-8 rounded object-cover'
+                          />
+                        ) : (
+                          <div className='bg-muted flex h-8 w-8 items-center justify-center rounded'>
+                            <MonitorPlay className='h-4 w-4' />
+                          </div>
+                        )}
+                        <div>
+                          <div className='text-sm font-medium'>{show.name}</div>
+                          <div className='text-muted-foreground text-xs'>
+                            {show.year && `${show.year} • `}
+                            {show.rating && `⭐ ${show.rating}`}
+                          </div>
+                        </div>
+                      </div>
+                      <Button size='sm' variant='ghost'>
+                        <Play className='h-4 w-4' />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              <Button
+                variant='outline'
+                className='mt-4 w-full'
+                onClick={() => setCurrentView('shows')}
+              >
+                Ver Todas as Séries
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Watch History - Always show if there's history */}
+        {(recentHistory.length > 0 ||
+          (!contentDownloaded.channels &&
+            !contentDownloaded.movies &&
+            !contentDownloaded.shows)) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <History className='h-5 w-5' />
+                Histórico Recente
+              </CardTitle>
+              <CardDescription>Últimos itens assistidos</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className='h-48'>
+                <div className='space-y-2'>
+                  {recentHistory.length > 0 ? (
+                    recentHistory.map((item) => (
+                      <div
+                        key={`${item.type}-${item.id}`}
+                        className='hover:bg-muted flex cursor-pointer items-center justify-between rounded-lg p-2'
+                      >
+                        <div className='flex items-center gap-3'>
+                          {item.streamIcon ? (
+                            <img
+                              src={item.streamIcon}
+                              alt={item.name}
+                              className='h-8 w-8 rounded object-cover'
+                            />
+                          ) : (
+                            <div className='bg-muted flex h-8 w-8 items-center justify-center rounded'>
+                              {item.type === 'channel' && (
+                                <Tv className='h-4 w-4' />
+                              )}
+                              {item.type === 'movie' && (
+                                <Film className='h-4 w-4' />
+                              )}
+                              {item.type === 'episode' && (
+                                <MonitorPlay className='h-4 w-4' />
+                              )}
+                            </div>
+                          )}
+                          <div>
+                            <div className='text-sm font-medium'>
+                              {item.name}
+                            </div>
+                            <div className='text-muted-foreground text-xs'>
+                              <Badge variant='secondary' className='text-xs'>
+                                {item.type === 'channel' && 'Canal'}
+                                {item.type === 'movie' && 'Filme'}
+                                {item.type === 'episode' && 'Episódio'}
+                              </Badge>
+                              <span className='ml-2'>
+                                {new Date(item.watchedAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <Button size='sm' variant='ghost'>
+                          <Play className='h-4 w-4' />
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className='text-muted-foreground py-8 text-center'>
+                      <Clock className='mx-auto mb-2 h-8 w-8 opacity-50' />
+                      <p>Nenhum histórico ainda</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+              {recentHistory.length > 0 && (
+                <Button
+                  variant='outline'
+                  className='mt-4 w-full'
+                  onClick={() => setCurrentView('favorites' as any)}
+                >
+                  Ver Histórico Completo
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Server Info */}

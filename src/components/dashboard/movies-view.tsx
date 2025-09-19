@@ -42,13 +42,8 @@ export function MoviesView() {
     const loadMoviesData = async () => {
       setIsLoading(true);
       try {
-        // Try to load from cache first
+        // Load movies from IndexedDB only
         await loadMovies(selectedCategory || undefined);
-
-        // If no cached data, fetch from API
-        if (movies.length === 0) {
-          await fetchMovies({ categoryId: selectedCategory || undefined });
-        }
       } catch (error) {
         console.error('Failed to load movies:', error);
       } finally {
@@ -57,7 +52,7 @@ export function MoviesView() {
     };
 
     loadMoviesData();
-  }, [selectedCategory, loadMovies, fetchMovies, movies.length]);
+  }, [selectedCategory, loadMovies]);
 
   useEffect(() => {
     let filtered = movies;
@@ -185,12 +180,14 @@ export function MoviesView() {
             <div className='py-12 text-center'>
               <Film className='text-muted-foreground mx-auto mb-4 h-12 w-12' />
               <h3 className='mb-2 text-lg font-semibold'>
-                Nenhum filme encontrado
+                {searchQuery
+                  ? 'Nenhum filme encontrado'
+                  : 'Nenhum filme disponível'}
               </h3>
               <p className='text-muted-foreground'>
                 {searchQuery
                   ? 'Tente ajustar sua busca'
-                  : 'Nenhum filme disponível nesta categoria'}
+                  : 'Faça o download do conteúdo na página inicial para visualizar os filmes'}
               </p>
             </div>
           ) : (
