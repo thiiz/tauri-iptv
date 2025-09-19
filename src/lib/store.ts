@@ -110,15 +110,15 @@ interface IPTVStore {
   fetchMovieCategories: (forceRefresh?: boolean) => Promise<void>;
   fetchShowCategories: (forceRefresh?: boolean) => Promise<void>;
   fetchChannels: (
-    options?: { categoryId?: string },
+    options?: { categoryId?: string; page?: number; limit?: number },
     forceRefresh?: boolean
   ) => Promise<void>;
   fetchMovies: (
-    options?: { categoryId?: string },
+    options?: { categoryId?: string; page?: number; limit?: number },
     forceRefresh?: boolean
   ) => Promise<void>;
   fetchShows: (
-    options?: { categoryId?: string },
+    options?: { categoryId?: string; page?: number; limit?: number },
     forceRefresh?: boolean
   ) => Promise<void>;
   fetchUserProfile: (forceRefresh?: boolean) => Promise<void>;
@@ -204,6 +204,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
   },
 
   setCurrentProfile: async (profileId) => {
+    if (!profileId) return undefined;
     const profile = await profileServiceIndexedDB.getProfile(profileId);
     if (profile) {
       await profileServiceIndexedDB.setActiveProfile(profileId);
@@ -516,7 +517,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
   },
 
   fetchChannels: async (
-    options?: { categoryId?: string },
+    options?: { categoryId?: string; page?: number; limit?: number },
     forceRefresh = false
   ) => {
     try {
@@ -533,7 +534,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
   },
 
   fetchMovies: async (
-    options?: { categoryId?: string },
+    options?: { categoryId?: string; page?: number; limit?: number },
     forceRefresh = false
   ) => {
     try {
@@ -550,7 +551,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
   },
 
   fetchShows: async (
-    options?: { categoryId?: string },
+    options?: { categoryId?: string; page?: number; limit?: number },
     forceRefresh = false
   ) => {
     try {

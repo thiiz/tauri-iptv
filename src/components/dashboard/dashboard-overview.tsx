@@ -34,6 +34,9 @@ export function DashboardOverview() {
     watchHistory,
     userProfile,
     serverInfo,
+    channels,
+    movies,
+    shows,
     loadChannels,
     loadMovies,
     loadShows,
@@ -52,34 +55,19 @@ export function DashboardOverview() {
     const loadRecentContent = async () => {
       setIsLoading(true);
       try {
-        // Try to load from cache first
-        const [cachedChannels, cachedMovies, cachedShows] = await Promise.all([
-          loadChannels(),
-          loadMovies(),
-          loadShows()
-        ]);
+        // Load from cache first
+        await Promise.all([loadChannels(), loadMovies(), loadShows()]);
 
         // If no cached data, fetch from API
-        if (cachedChannels.length === 0) {
+        if (channels.length === 0) {
           await fetchChannels({ limit: 6 });
         }
-        if (cachedMovies.length === 0) {
+        if (movies.length === 0) {
           await fetchMovies({ limit: 6 });
         }
-        if (cachedShows.length === 0) {
+        if (shows.length === 0) {
           await fetchShows({ limit: 6 });
         }
-
-        // Load recent items for display
-        const [channels, movies, shows] = await Promise.all([
-          loadChannels(),
-          loadMovies(),
-          loadShows()
-        ]);
-
-        setRecentChannels(channels.slice(0, 6));
-        setRecentMovies(movies.slice(0, 6));
-        setRecentShows(shows.slice(0, 6));
       } catch (error) {
         console.error('Failed to load recent content:', error);
       } finally {
@@ -96,6 +84,13 @@ export function DashboardOverview() {
     fetchMovies,
     fetchShows
   ]);
+
+  // Update local state when store state changes
+  useEffect(() => {
+    setRecentChannels(channels.slice(0, 6));
+    setRecentMovies(movies.slice(0, 6));
+    setRecentShows(shows.slice(0, 6));
+  }, [channels, movies, shows]);
 
   const stats = [
     {

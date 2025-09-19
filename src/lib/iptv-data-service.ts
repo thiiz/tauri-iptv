@@ -194,6 +194,7 @@ export class IPTVDataService {
 
   async getMovieCategories(forceRefresh = false): Promise<Category[]> {
     if (!forceRefresh) {
+      await this.ensureDBInitialized();
       const cached = await indexedDBService.getCategories('movie');
       if (cached.length > 0) {
         return cached;
@@ -202,13 +203,18 @@ export class IPTVDataService {
 
     this.ensureInitialized();
     try {
-      const categories = await this.xtream!.getMovieCategories();
+      const categories = await this.makeRequest('get_vod_categories');
+      if (!Array.isArray(categories)) {
+        console.warn('Movie categories response is not an array:', categories);
+        return [];
+      }
       const formattedCategories = categories.map((cat: any) => ({
-        id: cat.id || cat.category_id,
-        name: cat.name || cat.category_name,
-        parentId: cat.parentId || cat.parent_id
+        id: cat.category_id,
+        name: cat.category_name,
+        parentId: cat.parent_id
       }));
 
+      await this.ensureDBInitialized();
       await indexedDBService.saveCategories('movie', formattedCategories);
       return formattedCategories;
     } catch (error) {
@@ -219,6 +225,7 @@ export class IPTVDataService {
 
   async getShowCategories(forceRefresh = false): Promise<Category[]> {
     if (!forceRefresh) {
+      await this.ensureDBInitialized();
       const cached = await indexedDBService.getCategories('show');
       if (cached.length > 0) {
         return cached;
@@ -227,13 +234,18 @@ export class IPTVDataService {
 
     this.ensureInitialized();
     try {
-      const categories = await this.xtream!.getShowCategories();
+      const categories = await this.makeRequest('get_series_categories');
+      if (!Array.isArray(categories)) {
+        console.warn('Show categories response is not an array:', categories);
+        return [];
+      }
       const formattedCategories = categories.map((cat: any) => ({
-        id: cat.id || cat.category_id,
-        name: cat.name || cat.category_name,
-        parentId: cat.parentId || cat.parent_id
+        id: cat.category_id,
+        name: cat.category_name,
+        parentId: cat.parent_id
       }));
 
+      await this.ensureDBInitialized();
       await indexedDBService.saveCategories('show', formattedCategories);
       return formattedCategories;
     } catch (error) {
@@ -342,6 +354,7 @@ export class IPTVDataService {
     forceRefresh = false
   ): Promise<MovieDetails> {
     if (!forceRefresh) {
+      await this.ensureDBInitialized();
       const cached = await indexedDBService.getMovie(movieId);
       if (cached && 'plot' in cached) {
         return cached as MovieDetails;
@@ -350,34 +363,37 @@ export class IPTVDataService {
 
     this.ensureInitialized();
     try {
-      const movie = await this.xtream!.getMovie({ movieId });
+      const movie = await this.makeRequest('get_vod_info', { vod_id: movieId });
       const movieDetails: MovieDetails = {
-        id: movie.id || movie.stream_id,
-        name: movie.name,
-        streamType: movie.streamType || movie.stream_type,
-        streamIcon: movie.streamIcon || movie.stream_icon,
-        rating: movie.rating,
-        year: movie.year,
-        added: movie.added,
-        categoryId: movie.categoryId || movie.category_id,
+        id: movie.info?.id || movie.info?.stream_id || movieId,
+        name: movie.info?.name || '',
+        streamType:
+          movie.info?.streamType || movie.info?.stream_type || 'movie',
+        streamIcon: movie.info?.streamIcon || movie.info?.stream_icon,
+        rating: movie.info?.rating,
+        year: movie.info?.year,
+        added: movie.info?.added,
+        categoryId: movie.info?.categoryId || movie.info?.category_id,
         containerExtension:
-          movie.containerExtension || movie.container_extension,
-        customSid: movie.customSid || movie.custom_sid,
-        directSource: movie.directSource || movie.direct_source,
-        plot: movie.plot,
-        cast: movie.cast,
-        director: movie.director,
-        genre: movie.genre,
-        releaseDate: movie.releaseDate || movie.release_date,
-        lastModified: movie.lastModified || movie.last_modified,
-        rating5based: movie.rating5based || movie.rating_5based,
-        backdropPath: movie.backdropPath || movie.backdrop_path,
-        youtubeTrailer: movie.youtubeTrailer || movie.youtube_trailer,
-        tmdbId: movie.tmdbId || movie.tmdb_id,
-        imdbId: movie.imdbId || movie.imdb_id
+          movie.info?.containerExtension || movie.info?.container_extension,
+        customSid: movie.info?.customSid || movie.info?.custom_sid,
+        directSource: movie.info?.directSource || movie.info?.direct_source,
+        plot: movie.info?.plot,
+        cast: movie.info?.cast,
+        director: movie.info?.director,
+        genre: movie.info?.genre,
+        releaseDate: movie.info?.releaseDate || movie.info?.release_date,
+        lastModified: movie.info?.lastModified || movie.info?.last_modified,
+        rating5based: movie.info?.rating5based || movie.info?.rating_5based,
+        backdropPath: movie.info?.backdropPath || movie.info?.backdrop_path,
+        youtubeTrailer:
+          movie.info?.youtubeTrailer || movie.info?.youtube_trailer,
+        tmdbId: movie.info?.tmdbId || movie.info?.tmdb_id,
+        imdbId: movie.info?.imdbId || movie.info?.imdb_id
       };
 
       // Update the movie in IndexedDB with full details
+      await this.ensureDBInitialized();
       await indexedDBService.saveMovies([movieDetails]);
 
       return movieDetails;
@@ -392,6 +408,7 @@ export class IPTVDataService {
     forceRefresh = false
   ): Promise<Show[]> {
     if (!forceRefresh) {
+      await this.ensureDBInitialized();
       const cached = await indexedDBService.getShows(options?.categoryId);
       if (cached.length > 0) {
         return cached;
@@ -400,19 +417,29 @@ export class IPTVDataService {
 
     this.ensureInitialized();
     try {
-      const shows = await this.xtream!.getShows(options);
+      const params: Record<string, string> = {};
+      if (options?.categoryId) {
+        params.category_id = options.categoryId;
+      }
+
+      const shows = await this.makeRequest('get_series', params);
+      if (!Array.isArray(shows)) {
+        console.warn('Shows response is not an array:', shows);
+        return [];
+      }
       const formattedShows = shows.map((show: any) => ({
-        id: show.id || show.series_id,
+        id: show.series_id,
         name: show.name,
-        streamType: show.streamType || show.stream_type,
-        streamIcon: show.streamIcon || show.stream_icon,
+        streamType: show.stream_type,
+        streamIcon: show.stream_icon,
         rating: show.rating,
         year: show.year,
         added: show.added,
-        categoryId: show.categoryId || show.category_id,
-        lastModified: show.lastModified || show.last_modified
+        categoryId: show.category_id,
+        lastModified: show.last_modified
       }));
 
+      await this.ensureDBInitialized();
       await indexedDBService.saveShows(formattedShows);
       return formattedShows;
     } catch (error) {
@@ -426,6 +453,7 @@ export class IPTVDataService {
     forceRefresh = false
   ): Promise<ShowDetails> {
     if (!forceRefresh) {
+      await this.ensureDBInitialized();
       const cached = await indexedDBService.getShow(showId);
       if (cached && 'episodes' in cached) {
         return cached as ShowDetails;
@@ -434,31 +462,34 @@ export class IPTVDataService {
 
     this.ensureInitialized();
     try {
-      const show = await this.xtream!.getShow({ showId });
+      const show = await this.makeRequest('get_series_info', {
+        series_id: showId
+      });
       const showDetails: ShowDetails = {
-        id: show.id || show.series_id,
-        name: show.name,
-        streamType: show.streamType || show.stream_type,
-        streamIcon: show.streamIcon || show.stream_icon,
-        rating: show.rating,
-        year: show.year,
-        added: show.added,
-        categoryId: show.categoryId || show.category_id,
-        lastModified: show.lastModified || show.last_modified,
-        plot: show.plot,
-        cast: show.cast,
-        director: show.director,
-        genre: show.genre,
-        releaseDate: show.releaseDate || show.release_date,
-        rating5based: show.rating5based || show.rating_5based,
-        backdropPath: show.backdropPath || show.backdrop_path,
-        youtubeTrailer: show.youtubeTrailer || show.youtube_trailer,
-        tmdbId: show.tmdbId || show.tmdb_id,
-        imdbId: show.imdbId || show.imdb_id,
+        id: show.info?.id || show.info?.series_id || showId,
+        name: show.info?.name || '',
+        streamType: show.info?.streamType || show.info?.stream_type || 'series',
+        streamIcon: show.info?.streamIcon || show.info?.stream_icon,
+        rating: show.info?.rating,
+        year: show.info?.year,
+        added: show.info?.added,
+        categoryId: show.info?.categoryId || show.info?.category_id,
+        lastModified: show.info?.lastModified || show.info?.last_modified,
+        plot: show.info?.plot,
+        cast: show.info?.cast,
+        director: show.info?.director,
+        genre: show.info?.genre,
+        releaseDate: show.info?.releaseDate || show.info?.release_date,
+        rating5based: show.info?.rating5based || show.info?.rating_5based,
+        backdropPath: show.info?.backdropPath || show.info?.backdrop_path,
+        youtubeTrailer: show.info?.youtubeTrailer || show.info?.youtube_trailer,
+        tmdbId: show.info?.tmdbId || show.info?.tmdb_id,
+        imdbId: show.info?.imdbId || show.info?.imdb_id,
         episodes: show.episodes || []
       };
 
       // Update the show in IndexedDB with full details
+      await this.ensureDBInitialized();
       await indexedDBService.saveShows([showDetails]);
 
       // Save episodes if available
@@ -490,7 +521,15 @@ export class IPTVDataService {
   async getShortEPG(channelId: string, limit?: number): Promise<EPGProgram[]> {
     this.ensureInitialized();
     try {
-      const epg = await this.xtream!.getShortEPG({ channelId, limit });
+      const params: Record<string, string> = { stream_id: channelId };
+      if (limit) {
+        params.limit = limit.toString();
+      }
+      const epg = await this.makeRequest('get_short_epg', params);
+      if (!Array.isArray(epg)) {
+        console.warn('Short EPG response is not an array:', epg);
+        return [];
+      }
       return epg.map((program: any) => ({
         id: program.id,
         title: program.title,
@@ -508,7 +547,11 @@ export class IPTVDataService {
   async getFullEPG(channelId: string): Promise<EPGProgram[]> {
     this.ensureInitialized();
     try {
-      const epg = await this.xtream!.getFullEPG({ channelId });
+      const epg = await this.makeRequest('get_epg', { stream_id: channelId });
+      if (!Array.isArray(epg)) {
+        console.warn('Full EPG response is not an array:', epg);
+        return [];
+      }
       return epg.map((program: any) => ({
         id: program.id,
         title: program.title,
