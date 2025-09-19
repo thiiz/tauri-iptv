@@ -1,17 +1,15 @@
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import type {
-  ProfileAccount,
+  AppSettings,
   Category,
   Channel,
-  Movie,
-  Show,
   Episode,
   FavoriteItem,
-  WatchHistory,
-  AppSettings,
-  UserProfile,
-  ServerInfo
+  Movie,
+  ProfileAccount,
+  Show,
+  WatchHistory
 } from '@/types/iptv';
+import { DBSchema, IDBPDatabase, openDB } from 'idb';
 
 interface IPTVDBSchema extends DBSchema {
   profiles: {
@@ -407,54 +405,83 @@ export class IndexedDBService {
   }
 
   // Episode methods
-  async saveEpisodes(showId: string, episodes: Episode[]): Promise<void> {
+  async saveEpisodes(
+    showId: string,
+    episodes: Episode[],
+    profileId: string
+  ): Promise<void> {
     const db = await this.ensureDB();
     if (!db) return;
     const tx = db.transaction('episodes', 'readwrite');
 
-    // Delete existing episodes for this show
+    // Delete existing episodes for this show and profile
     const existingEpisodes = await tx.store.index('by-showId').getAll(showId);
-    for (const episode of existingEpisodes) {
+    const profileEpisodes = existingEpisodes.filter(
+      (ep) => ep.profileId === profileId
+    );
+    for (const episode of profileEpisodes) {
       await tx.store.delete(episode.id);
     }
 
     // Add new episodes
     for (const episode of episodes) {
-      await tx.store.put({ ...episode, showId });
+      await tx.store.put({ ...episode, showId, profileId });
     }
 
     await tx.done;
   }
 
-  async getEpisodes(showId: string): Promise<Episode[]> {
+  async getEpisodes(showId: string, profileId?: string): Promise<Episode[]> {
     const db = await this.ensureDB();
     if (!db) return [];
     const episodes = await db.getAllFromIndex('episodes', 'by-showId', showId);
-    return episodes.map(({ showId: _, ...episode }) => episode);
+    const filteredEpisodes = profileId
+      ? episodes.filter((ep) => ep.profileId === profileId)
+      : episodes;
+    return filteredEpisodes.map(
+      ({ showId: _, profileId: __, ...episode }) => episode
+    );
   }
 
   // Favorites methods
-  async addFavorite(item: FavoriteItem): Promise<void> {
+  async addFavorite(item: FavoriteItem, profileId: string): Promise<void> {
     const db = await this.ensureDB();
     if (!db) return;
-    await db.put('favorites', item);
+    const favoriteWithProfile = { ...item, profileId };
+    await db.put('favorites', favoriteWithProfile);
   }
 
-  async removeFavorite(id: string): Promise<void> {
+  async removeFavorite(id: string, profileId: string): Promise<void> {
     const db = await this.ensureDB();
     if (!db) return;
-    await db.delete('favorites', id);
+    // Find the favorite item for this profile
+    const favorites = await db.getAllFromIndex(
+      'favorites',
+      'by-profile',
+      profileId
+    );
+    const favorite = favorites.find((f) => f.id === id);
+    if (favorite) {
+      await db.delete('favorites', favorite.id);
+    }
   }
 
   async getFavorites(
+    profileId: string,
     type?: 'channel' | 'movie' | 'show'
   ): Promise<FavoriteItem[]> {
     const db = await this.ensureDB();
     if (!db) return [];
+    let favorites: (FavoriteItem & { profileId: string })[];
     if (type) {
-      return await db.getAllFromIndex('favorites', 'by-type', type);
+      favorites = await db.getAllFromIndex('favorites', 'by-type', type);
+    } else {
+      favorites = await db.getAll('favorites');
     }
-    return await db.getAll('favorites');
+    // Filter by profile
+    const profileFavorites = favorites.filter((f) => f.profileId === profileId);
+    // Remove profileId from returned items
+    return profileFavorites.map(({ profileId: _, ...fav }) => fav);
   }
 
   async isFavorite(id: string): Promise<boolean> {
@@ -465,19 +492,21 @@ export class IndexedDBService {
   }
 
   // Watch History methods
-  async addToHistory(item: WatchHistory): Promise<void> {
+  async addToHistory(item: WatchHistory, profileId: string): Promise<void> {
     const db = await this.ensureDB();
     if (!db) return;
-    await db.put('watchHistory', item);
+    const historyWithProfile = { ...item, profileId };
+    await db.put('watchHistory', historyWithProfile);
   }
 
   async getWatchHistory(
+    profileId: string,
     type?: 'channel' | 'movie' | 'episode',
     limit = 100
   ): Promise<WatchHistory[]> {
     const db = await this.ensureDB();
     if (!db) return [];
-    let history: WatchHistory[];
+    let history: (WatchHistory & { profileId: string })[];
 
     if (type) {
       history = await db.getAllFromIndex('watchHistory', 'by-type', type);
@@ -485,19 +514,35 @@ export class IndexedDBService {
       history = await db.getAll('watchHistory');
     }
 
+    // Filter by profile
+    const profileHistory = history.filter((h) => h.profileId === profileId);
+
     // Sort by watchedAt descending and limit
-    return history
+    const sortedHistory = profileHistory
       .sort(
         (a, b) =>
           new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime()
       )
       .slice(0, limit);
+
+    // Remove profileId from returned items
+    return sortedHistory.map(({ profileId: _, ...h }) => h);
   }
 
-  async clearWatchHistory(): Promise<void> {
+  async clearWatchHistory(profileId: string): Promise<void> {
     const db = await this.ensureDB();
     if (!db) return;
-    await db.clear('watchHistory');
+    // Get all history items for this profile and delete them
+    const historyItems = await db.getAllFromIndex(
+      'watchHistory',
+      'by-profile',
+      profileId
+    );
+    const tx = db.transaction('watchHistory', 'readwrite');
+    for (const item of historyItems) {
+      await tx.store.delete(item.id);
+    }
+    await tx.done;
   }
 
   // Settings methods

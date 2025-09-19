@@ -1,17 +1,17 @@
 import type {
-  XtreamConfig,
-  UserProfile,
-  ServerInfo,
   Category,
   Channel,
+  EPGProgram,
+  Episode,
   Movie,
   MovieDetails,
+  ProfileAccount,
+  ServerInfo,
   Show,
   ShowDetails,
-  Episode,
-  EPGProgram,
   StreamOptions,
-  ProfileAccount
+  UserProfile,
+  XtreamConfig
 } from '@/types/iptv';
 import { invoke } from '@tauri-apps/api/core';
 import { indexedDBService } from './indexeddb-service';
@@ -533,8 +533,16 @@ export class IPTVDataService {
       }
 
       // Save episodes if available
-      if (showDetails.episodes && showDetails.episodes.length > 0) {
-        await indexedDBService.saveEpisodes(showId, showDetails.episodes);
+      if (
+        showDetails.episodes &&
+        showDetails.episodes.length > 0 &&
+        this.currentProfile
+      ) {
+        await indexedDBService.saveEpisodes(
+          showId,
+          showDetails.episodes,
+          this.currentProfile.id
+        );
       }
 
       return showDetails;
@@ -546,7 +554,10 @@ export class IPTVDataService {
 
   async getEpisodes(showId: string, forceRefresh = false): Promise<Episode[]> {
     if (!forceRefresh) {
-      const cached = await indexedDBService.getEpisodes(showId);
+      const cached = await indexedDBService.getEpisodes(
+        showId,
+        this.currentProfile?.id
+      );
       if (cached.length > 0) {
         return cached;
       }

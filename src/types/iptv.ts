@@ -170,6 +170,7 @@ export interface FavoriteItem {
   name: string;
   streamIcon?: string;
   addedAt: string;
+  profileId?: string;
 }
 
 export interface WatchHistory {
@@ -180,4 +181,5 @@ export interface WatchHistory {
   watchedAt: string;
   duration?: number;
   position?: number;
+  profileId?: string;
 }

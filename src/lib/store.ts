@@ -367,25 +367,28 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
   setPlaying: (playing) => set({ isPlaying: playing }),
 
   addFavorite: async (item) => {
-    const { favorites } = get();
+    const { favorites, currentProfileId } = get();
+    if (!currentProfileId) return;
     if (
       !favorites.find((fav) => fav.id === item.id && fav.type === item.type)
     ) {
       const newFavorites = [...favorites, item];
       set({ favorites: newFavorites });
-      await indexedDBService.addFavorite(item);
+      await indexedDBService.addFavorite(item, currentProfileId);
     }
   },
 
   removeFavorite: async (id) => {
-    const { favorites } = get();
+    const { favorites, currentProfileId } = get();
+    if (!currentProfileId) return;
     const newFavorites = favorites.filter((fav) => fav.id !== id);
     set({ favorites: newFavorites });
-    await indexedDBService.removeFavorite(id);
+    await indexedDBService.removeFavorite(id, currentProfileId);
   },
 
   addToHistory: async (item) => {
-    const { watchHistory } = get();
+    const { watchHistory, currentProfileId } = get();
+    if (!currentProfileId) return;
     const existingIndex = watchHistory.findIndex(
       (h) => h.id === item.id && h.type === item.type
     );
@@ -404,7 +407,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
       set({ watchHistory: updated });
     }
 
-    await indexedDBService.addToHistory(item);
+    await indexedDBService.addToHistory(item, currentProfileId);
   },
 
   updateSettings: async (newSettings) => {
@@ -458,7 +461,9 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
 
   loadFavorites: async () => {
     try {
-      const favorites = await indexedDBService.getFavorites();
+      const { currentProfileId } = get();
+      if (!currentProfileId) return;
+      const favorites = await indexedDBService.getFavorites(currentProfileId);
       set({ favorites });
     } catch (error) {
       console.error('Failed to load favorites:', error);
@@ -467,7 +472,10 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
 
   loadWatchHistory: async () => {
     try {
-      const watchHistory = await indexedDBService.getWatchHistory();
+      const { currentProfileId } = get();
+      if (!currentProfileId) return;
+      const watchHistory =
+        await indexedDBService.getWatchHistory(currentProfileId);
       set({ watchHistory });
     } catch (error) {
       console.error('Failed to load watch history:', error);
