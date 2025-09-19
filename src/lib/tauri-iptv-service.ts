@@ -4,12 +4,13 @@ import type {
   EPGProgram,
   Movie,
   MovieDetails,
+  ProfileAccount,
   ServerInfo,
   Show,
   ShowDetails,
   StreamOptions,
   UserProfile,
-  XtreamConfig,
+  XtreamConfig
 } from '@/types/iptv';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -21,11 +22,17 @@ interface ApiResponse<T> {
 
 export class TauriIPTVService {
   private config: XtreamConfig | null = null;
+  private currentProfile: ProfileAccount | null = null;
 
-  constructor() { }
+  constructor() {}
 
   async initialize(config: XtreamConfig): Promise<void> {
     this.config = config;
+  }
+
+  async initializeWithProfile(profile: ProfileAccount): Promise<void> {
+    this.currentProfile = profile;
+    this.config = profile.config;
   }
 
   private ensureInitialized(): void {
@@ -34,14 +41,17 @@ export class TauriIPTVService {
     }
   }
 
-  private async makeRequest(action: string, additionalParams: Record<string, string> = {}): Promise<any> {
+  private async makeRequest(
+    action: string,
+    additionalParams: Record<string, string> = {}
+  ): Promise<any> {
     this.ensureInitialized();
 
     const params = {
       username: this.config!.username,
       password: this.config!.password,
       action,
-      ...additionalParams,
+      ...additionalParams
     };
 
     // Ensure URL ends with player_api.php
@@ -52,7 +62,7 @@ export class TauriIPTVService {
 
     const response = await invoke<ApiResponse<any>>('iptv_request', {
       url: apiUrl,
-      params,
+      params
     });
 
     if (!response.success) {
@@ -71,8 +81,8 @@ export class TauriIPTVService {
           url: this.config!.url,
           username: this.config!.username,
           password: this.config!.password,
-          preferred_format: this.config!.preferredFormat,
-        },
+          preferred_format: this.config!.preferredFormat
+        }
       });
 
       return response.success;
@@ -94,7 +104,7 @@ export class TauriIPTVService {
         isActive: profile.user_info?.status === 'Active',
         createdAt: profile.user_info?.created_at || '',
         maxConnections: profile.user_info?.max_connections || 1,
-        allowedOutputFormats: profile.user_info?.allowed_output_formats || [],
+        allowedOutputFormats: profile.user_info?.allowed_output_formats || []
       };
     } catch (error) {
       console.error('Failed to get user profile:', error);
@@ -114,7 +124,7 @@ export class TauriIPTVService {
         rtmpPort: serverInfo.rtmp_port || '',
         timezone: serverInfo.timezone || '',
         timestampNow: serverInfo.timestamp_now || Date.now(),
-        timeNow: serverInfo.time_now || new Date().toISOString(),
+        timeNow: serverInfo.time_now || new Date().toISOString()
       };
     } catch (error) {
       console.error('Failed to get server info:', error);
@@ -132,7 +142,7 @@ export class TauriIPTVService {
       return categories.map((cat: any) => ({
         id: cat.category_id,
         name: cat.category_name,
-        parentId: cat.parent_id,
+        parentId: cat.parent_id
       }));
     } catch (error) {
       console.error('Failed to get channel categories:', error);
@@ -150,7 +160,7 @@ export class TauriIPTVService {
       return categories.map((cat: any) => ({
         id: cat.category_id,
         name: cat.category_name,
-        parentId: cat.parent_id,
+        parentId: cat.parent_id
       }));
     } catch (error) {
       console.error('Failed to get movie categories:', error);
@@ -168,7 +178,7 @@ export class TauriIPTVService {
       return categories.map((cat: any) => ({
         id: cat.category_id,
         name: cat.category_name,
-        parentId: cat.parent_id,
+        parentId: cat.parent_id
       }));
     } catch (error) {
       console.error('Failed to get show categories:', error);
@@ -176,7 +186,11 @@ export class TauriIPTVService {
     }
   }
 
-  async getChannels(options?: { categoryId?: string; page?: number; limit?: number }): Promise<Channel[]> {
+  async getChannels(options?: {
+    categoryId?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<Channel[]> {
     try {
       const params: Record<string, string> = {};
       if (options?.categoryId) {
@@ -199,7 +213,7 @@ export class TauriIPTVService {
         customSid: ch.custom_sid,
         tvArchive: ch.tv_archive || 0,
         directSource: ch.direct_source,
-        tvArchiveDuration: ch.tv_archive_duration,
+        tvArchiveDuration: ch.tv_archive_duration
       }));
     } catch (error) {
       console.error('Failed to get channels:', error);
@@ -207,7 +221,11 @@ export class TauriIPTVService {
     }
   }
 
-  async getMovies(options?: { categoryId?: string; page?: number; limit?: number }): Promise<Movie[]> {
+  async getMovies(options?: {
+    categoryId?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<Movie[]> {
     try {
       const params: Record<string, string> = {};
       if (options?.categoryId) {
@@ -230,7 +248,7 @@ export class TauriIPTVService {
         categoryId: movie.category_id,
         containerExtension: movie.container_extension,
         customSid: movie.custom_sid,
-        directSource: movie.direct_source,
+        directSource: movie.direct_source
       }));
     } catch (error) {
       console.error('Failed to get movies:', error);
@@ -266,7 +284,7 @@ export class TauriIPTVService {
         backdropPath: info.backdrop_path || '',
         youtubeTrailer: info.youtube_trailer || '',
         tmdbId: info.tmdb_id || '',
-        imdbId: info.imdb_id || '',
+        imdbId: info.imdb_id || ''
       };
     } catch (error) {
       console.error('Failed to get movie details:', error);
@@ -274,7 +292,11 @@ export class TauriIPTVService {
     }
   }
 
-  async getShows(options?: { categoryId?: string; page?: number; limit?: number }): Promise<Show[]> {
+  async getShows(options?: {
+    categoryId?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<Show[]> {
     try {
       const params: Record<string, string> = {};
       if (options?.categoryId) {
@@ -295,7 +317,7 @@ export class TauriIPTVService {
         year: show.year,
         added: show.last_modified,
         categoryId: show.category_id,
-        lastModified: show.last_modified,
+        lastModified: show.last_modified
       }));
     } catch (error) {
       console.error('Failed to get shows:', error);
@@ -305,7 +327,9 @@ export class TauriIPTVService {
 
   async getShowDetails(showId: string): Promise<ShowDetails> {
     try {
-      const show = await this.makeRequest('get_series_info', { series_id: showId });
+      const show = await this.makeRequest('get_series_info', {
+        series_id: showId
+      });
       const info = show.info || {};
       const episodes = show.episodes || {};
 
@@ -329,26 +353,29 @@ export class TauriIPTVService {
         youtubeTrailer: info.youtube_trailer || '',
         tmdbId: info.tmdb_id || '',
         imdbId: info.imdb_id || '',
-        episodes: Object.values(episodes).flat().map((ep: any) => ({
-          id: ep.id || '',
-          episodeNum: ep.episode_num || 0,
-          title: ep.title || '',
-          containerExtension: ep.container_extension || '',
-          info: {
-            movieImage: ep.info?.movie_image || '',
-            plot: ep.info?.plot || '',
-            cast: ep.info?.cast || '',
-            director: ep.info?.director || '',
-            genre: ep.info?.genre || '',
-            releaseDate: ep.info?.releasedate || '',
-            rating: ep.info?.rating || 0,
-            tmdbId: ep.info?.tmdb_id || 0,
-            season: ep.info?.season || 0,
-          },
-          customSid: ep.custom_sid || '',
-          added: ep.added || '',
-          season: ep.season || 0,
-        })) || [],
+        episodes:
+          Object.values(episodes)
+            .flat()
+            .map((ep: any) => ({
+              id: ep.id || '',
+              episodeNum: ep.episode_num || 0,
+              title: ep.title || '',
+              containerExtension: ep.container_extension || '',
+              info: {
+                movieImage: ep.info?.movie_image || '',
+                plot: ep.info?.plot || '',
+                cast: ep.info?.cast || '',
+                director: ep.info?.director || '',
+                genre: ep.info?.genre || '',
+                releaseDate: ep.info?.releasedate || '',
+                rating: ep.info?.rating || 0,
+                tmdbId: ep.info?.tmdb_id || 0,
+                season: ep.info?.season || 0
+              },
+              customSid: ep.custom_sid || '',
+              added: ep.added || '',
+              season: ep.season || 0
+            })) || []
       };
     } catch (error) {
       console.error('Failed to get show details:', error);
@@ -364,14 +391,16 @@ export class TauriIPTVService {
       }
 
       const epg = await this.makeRequest('get_short_epg', params);
-      return Object.values(epg.epg_listings || {}).flat().map((program: any) => ({
-        id: program.id,
-        title: program.title,
-        description: program.description,
-        start: program.start,
-        stop: program.stop,
-        channelId: channelId,
-      }));
+      return Object.values(epg.epg_listings || {})
+        .flat()
+        .map((program: any) => ({
+          id: program.id,
+          title: program.title,
+          description: program.description,
+          start: program.start,
+          stop: program.stop,
+          channelId: channelId
+        }));
     } catch (error) {
       console.error('Failed to get short EPG:', error);
       throw new Error('Failed to get EPG data');
@@ -380,15 +409,19 @@ export class TauriIPTVService {
 
   async getFullEPG(channelId: string): Promise<EPGProgram[]> {
     try {
-      const epg = await this.makeRequest('get_simple_data_table', { stream_id: channelId });
-      return Object.values(epg.epg_listings || {}).flat().map((program: any) => ({
-        id: program.id,
-        title: program.title,
-        description: program.description,
-        start: program.start,
-        stop: program.stop,
-        channelId: channelId,
-      }));
+      const epg = await this.makeRequest('get_simple_data_table', {
+        stream_id: channelId
+      });
+      return Object.values(epg.epg_listings || {})
+        .flat()
+        .map((program: any) => ({
+          id: program.id,
+          title: program.title,
+          description: program.description,
+          start: program.start,
+          stop: program.stop,
+          channelId: channelId
+        }));
     } catch (error) {
       console.error('Failed to get full EPG:', error);
       throw new Error('Failed to get EPG data');
@@ -415,6 +448,10 @@ export class TauriIPTVService {
 
   getConfig(): XtreamConfig | null {
     return this.config;
+  }
+
+  getCurrentProfile(): ProfileAccount | null {
+    return this.currentProfile;
   }
 }
 

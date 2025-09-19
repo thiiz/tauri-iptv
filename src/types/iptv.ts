@@ -5,6 +5,17 @@ export interface XtreamConfig {
   preferredFormat?: string;
 }
 
+export interface ProfileAccount {
+  id: string;
+  name: string;
+  config: XtreamConfig;
+  isActive: boolean;
+  createdAt: string;
+  lastUsed?: string;
+  userProfile?: UserProfile;
+  serverInfo?: ServerInfo;
+}
+
 export interface UserProfile {
   id: string;
   username: string;
