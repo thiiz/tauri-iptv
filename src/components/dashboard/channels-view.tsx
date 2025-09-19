@@ -6,26 +6,25 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useIPTVStore } from '@/lib/store';
-import { tauriIPTVService } from '@/lib/tauri-iptv-service';
-import type { Channel } from '@/types/iptv';
 import {
-  Clock,
-  Grid3X3,
-  List,
-  Play,
-  Search,
-  Star,
-  Tv
-} from 'lucide-react';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { useIPTVStore } from '@/lib/store';
+import { iptvDataService } from '@/lib/iptv-data-service';
+import type { Channel } from '@/types/iptv';
+import { Clock, Grid3X3, List, Play, Search, Star, Tv } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export function ChannelsView() {
   const {
     channelCategories,
     channels,
-    setChannels,
+    loadChannels,
+    fetchChannels,
     selectedCategory,
     setSelectedCategory,
     favorites,
@@ -40,14 +39,16 @@ export function ChannelsView() {
   const [filteredChannels, setFilteredChannels] = useState<Channel[]>([]);
 
   useEffect(() => {
-    const loadChannels = async () => {
+    const loadChannelsData = async () => {
       setIsLoading(true);
       try {
-        const channelData = await tauriIPTVService.getChannels({
-          categoryId: selectedCategory || undefined,
-          limit: 50
-        });
-        setChannels(channelData);
+        // Try to load from cache first
+        await loadChannels(selectedCategory || undefined);
+
+        // If no cached data, fetch from API
+        if (channels.length === 0) {
+          await fetchChannels({ categoryId: selectedCategory || undefined });
+        }
       } catch (error) {
         console.error('Failed to load channels:', error);
       } finally {
@@ -55,14 +56,14 @@ export function ChannelsView() {
       }
     };
 
-    loadChannels();
-  }, [selectedCategory, setChannels]);
+    loadChannelsData();
+  }, [selectedCategory, loadChannels, fetchChannels, channels.length]);
 
   useEffect(() => {
     let filtered = channels;
 
     if (searchQuery) {
-      filtered = filtered.filter(channel =>
+      filtered = filtered.filter((channel) =>
         channel.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
@@ -72,7 +73,7 @@ export function ChannelsView() {
 
   const handlePlayChannel = (channel: Channel) => {
     try {
-      const streamUrl = tauriIPTVService.generateStreamUrl({
+      const streamUrl = iptvDataService.generateStreamUrl({
         type: 'channel',
         streamId: channel.id,
         extension: 'm3u8'
@@ -99,7 +100,9 @@ export function ChannelsView() {
   };
 
   const handleToggleFavorite = (channel: Channel) => {
-    const isFavorite = favorites.some(fav => fav.id === channel.id && fav.type === 'channel');
+    const isFavorite = favorites.some(
+      (fav) => fav.id === channel.id && fav.type === 'channel'
+    );
 
     if (isFavorite) {
       removeFavorite(channel.id);
@@ -115,60 +118,64 @@ export function ChannelsView() {
   };
 
   const isFavorite = (channelId: string) => {
-    return favorites.some(fav => fav.id === channelId && fav.type === 'channel');
+    return favorites.some(
+      (fav) => fav.id === channelId && fav.type === 'channel'
+    );
   };
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className='flex flex-1 flex-col'>
       {/* Header */}
-      <div className="border-b p-6">
-        <div className="flex items-center justify-between">
+      <div className='border-b p-6'>
+        <div className='flex items-center justify-between'>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Canais</h1>
-            <p className="text-muted-foreground">
+            <h1 className='text-3xl font-bold tracking-tight'>Canais</h1>
+            <p className='text-muted-foreground'>
               {filteredChannels.length} canais disponíveis
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className='flex items-center gap-2'>
             <Button
               variant={viewMode === 'grid' ? 'default' : 'outline'}
-              size="sm"
+              size='sm'
               onClick={() => setViewMode('grid')}
             >
-              <Grid3X3 className="h-4 w-4" />
+              <Grid3X3 className='h-4 w-4' />
             </Button>
             <Button
               variant={viewMode === 'list' ? 'default' : 'outline'}
-              size="sm"
+              size='sm'
               onClick={() => setViewMode('list')}
             >
-              <List className="h-4 w-4" />
+              <List className='h-4 w-4' />
             </Button>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="flex gap-4 mt-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+        <div className='mt-4 flex gap-4'>
+          <div className='relative max-w-sm flex-1'>
+            <Search className='text-muted-foreground absolute top-2.5 left-2 h-4 w-4' />
             <Input
-              placeholder="Buscar canais..."
+              placeholder='Buscar canais...'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
+              className='pl-8'
             />
           </div>
 
           <Select
             value={selectedCategory || 'all'}
-            onValueChange={(value) => setSelectedCategory(value === 'all' ? null : value)}
+            onValueChange={(value) =>
+              setSelectedCategory(value === 'all' ? null : value)
+            }
           >
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Categoria" />
+            <SelectTrigger className='w-48'>
+              <SelectValue placeholder='Categoria' />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas as categorias</SelectItem>
+              <SelectItem value='all'>Todas as categorias</SelectItem>
               {channelCategories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
@@ -180,62 +187,85 @@ export function ChannelsView() {
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1">
-        <div className="p-6">
+      <ScrollArea className='flex-1'>
+        <div className='p-6'>
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <LoadingSpinner size="lg" />
+            <div className='flex items-center justify-center py-12'>
+              <LoadingSpinner size='lg' />
             </div>
           ) : filteredChannels.length === 0 ? (
-            <div className="text-center py-12">
-              <Tv className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">Nenhum canal encontrado</h3>
-              <p className="text-muted-foreground">
-                {searchQuery ? 'Tente ajustar sua busca' : 'Nenhum canal disponível nesta categoria'}
+            <div className='py-12 text-center'>
+              <Tv className='text-muted-foreground mx-auto mb-4 h-12 w-12' />
+              <h3 className='mb-2 text-lg font-semibold'>
+                Nenhum canal encontrado
+              </h3>
+              <p className='text-muted-foreground'>
+                {searchQuery
+                  ? 'Tente ajustar sua busca'
+                  : 'Nenhum canal disponível nesta categoria'}
               </p>
             </div>
           ) : (
-            <div className={
-              viewMode === 'grid'
-                ? 'grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
-                : 'space-y-2'
-            }>
+            <div
+              className={
+                viewMode === 'grid'
+                  ? 'grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                  : 'space-y-2'
+              }
+            >
               {filteredChannels.map((channel) => (
                 <Card
                   key={channel.id}
-                  className={`group cursor-pointer transition-all hover:shadow-md ${viewMode === 'list' ? 'flex-row' : ''
-                    }`}
+                  className={`group cursor-pointer transition-all hover:shadow-md ${
+                    viewMode === 'list' ? 'flex-row' : ''
+                  }`}
                 >
-                  <CardContent className={`p-4 ${viewMode === 'list' ? 'flex items-center gap-4 w-full' : ''}`}>
+                  <CardContent
+                    className={`p-4 ${viewMode === 'list' ? 'flex w-full items-center gap-4' : ''}`}
+                  >
                     {/* Channel Icon */}
-                    <div className={`${viewMode === 'list' ? 'flex-shrink-0' : 'mb-3'}`}>
+                    <div
+                      className={`${viewMode === 'list' ? 'flex-shrink-0' : 'mb-3'}`}
+                    >
                       {channel.streamIcon ? (
                         <img
                           src={channel.streamIcon}
                           alt={channel.name}
-                          className={`rounded object-cover ${viewMode === 'list' ? 'h-12 w-12' : 'h-16 w-16 mx-auto'
-                            }`}
+                          className={`rounded object-cover ${
+                            viewMode === 'list'
+                              ? 'h-12 w-12'
+                              : 'mx-auto h-16 w-16'
+                          }`}
                         />
                       ) : (
-                        <div className={`rounded bg-muted flex items-center justify-center ${viewMode === 'list' ? 'h-12 w-12' : 'h-16 w-16 mx-auto'
-                          }`}>
-                          <Tv className="h-6 w-6 text-muted-foreground" />
+                        <div
+                          className={`bg-muted flex items-center justify-center rounded ${
+                            viewMode === 'list'
+                              ? 'h-12 w-12'
+                              : 'mx-auto h-16 w-16'
+                          }`}
+                        >
+                          <Tv className='text-muted-foreground h-6 w-6' />
                         </div>
                       )}
                     </div>
 
                     {/* Channel Info */}
-                    <div className={`${viewMode === 'list' ? 'flex-1 min-w-0' : 'text-center'}`}>
-                      <h3 className={`font-semibold ${viewMode === 'list' ? 'text-base' : 'text-sm'} truncate`}>
+                    <div
+                      className={`${viewMode === 'list' ? 'min-w-0 flex-1' : 'text-center'}`}
+                    >
+                      <h3
+                        className={`font-semibold ${viewMode === 'list' ? 'text-base' : 'text-sm'} truncate`}
+                      >
                         {channel.name}
                       </h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="secondary" className="text-xs">
+                      <div className='mt-1 flex items-center gap-2'>
+                        <Badge variant='secondary' className='text-xs'>
                           Canal #{channel.id}
                         </Badge>
                         {channel.tvArchive > 0 && (
-                          <Badge variant="outline" className="text-xs">
-                            <Clock className="h-3 w-3 mr-1" />
+                          <Badge variant='outline' className='text-xs'>
+                            <Clock className='mr-1 h-3 w-3' />
                             Archive
                           </Badge>
                         )}
@@ -243,27 +273,34 @@ export function ChannelsView() {
                     </div>
 
                     {/* Actions */}
-                    <div className={`flex gap-2 ${viewMode === 'list' ? 'flex-shrink-0' : 'mt-3 justify-center'
-                      }`}>
+                    <div
+                      className={`flex gap-2 ${
+                        viewMode === 'list'
+                          ? 'flex-shrink-0'
+                          : 'mt-3 justify-center'
+                      }`}
+                    >
                       <Button
-                        size="sm"
+                        size='sm'
                         onClick={() => handlePlayChannel(channel)}
-                        className="flex-1"
+                        className='flex-1'
                       >
-                        <Play className="h-4 w-4 mr-1" />
+                        <Play className='mr-1 h-4 w-4' />
                         {viewMode === 'grid' ? '' : 'Assistir'}
                       </Button>
 
                       <Button
-                        size="sm"
-                        variant="outline"
+                        size='sm'
+                        variant='outline'
                         onClick={() => handleToggleFavorite(channel)}
-                        className={isFavorite(channel.id) ? 'text-yellow-600' : ''}
+                        className={
+                          isFavorite(channel.id) ? 'text-yellow-600' : ''
+                        }
                       >
                         {isFavorite(channel.id) ? (
-                          <Star className="h-4 w-4 fill-current" />
+                          <Star className='h-4 w-4 fill-current' />
                         ) : (
-                          <Star className="h-4 w-4" />
+                          <Star className='h-4 w-4' />
                         )}
                       </Button>
                     </div>

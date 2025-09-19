@@ -19,9 +19,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { profileService } from '@/lib/profile-service';
 import { useIPTVStore } from '@/lib/store';
-import { tauriIPTVService } from '@/lib/tauri-iptv-service';
+import { iptvDataService } from '@/lib/iptv-data-service';
+import { profileServiceIndexedDB } from '@/lib/profile-service-indexeddb';
 import type { ProfileAccount, XtreamConfig } from '@/types/iptv';
 import { Play, Plus, Settings, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -74,18 +74,21 @@ export function ProfileManager() {
       };
 
       // Test connection first
-      await tauriIPTVService.initialize(config);
-      const isConnected = await tauriIPTVService.testConnection();
+      await iptvDataService.initialize(config);
+      const isConnected = await iptvDataService.testConnection();
 
       if (!isConnected) {
         console.error('Failed to connect with provided credentials');
         return;
       }
 
-      const profile = profileService.createProfile(newProfile.name, config);
+      const profile = profileServiceIndexedDB.createProfile(
+        newProfile.name,
+        config
+      );
 
-      // Save to backend
-      await profileService.saveProfile(profile);
+      // Save to IndexedDB
+      await profileServiceIndexedDB.saveProfile(profile);
 
       // Add to store
       addProfile(profile);
@@ -110,8 +113,8 @@ export function ProfileManager() {
 
   const handleDeleteProfile = async (profileId: string) => {
     try {
-      await profileService.deleteProfile(profileId);
-      deleteProfile(profileId);
+      await profileServiceIndexedDB.deleteProfile(profileId);
+      await deleteProfile(profileId);
       console.log('Profile deleted successfully');
     } catch (error) {
       console.error('Failed to delete profile:', error);
@@ -121,10 +124,10 @@ export function ProfileManager() {
   const handleActivateProfile = async (profile: ProfileAccount) => {
     setIsLoading(true);
     try {
-      await tauriIPTVService.initializeWithProfile(profile);
+      await iptvDataService.initializeWithProfile(profile);
 
       // Test connection
-      const isConnected = await tauriIPTVService.testConnection();
+      const isConnected = await iptvDataService.testConnection();
       if (!isConnected) {
         console.error('Failed to connect to this profile');
         return;
@@ -132,11 +135,11 @@ export function ProfileManager() {
 
       // Get user profile and server info
       const [userProfile, serverInfo] = await Promise.all([
-        tauriIPTVService.getUserProfile(),
-        tauriIPTVService.getServerInfo()
+        iptvDataService.getUserProfile(),
+        iptvDataService.getServerInfo()
       ]);
 
-      // Update profile with last used timestamp and set as active
+      // Update profile with last used timestamp and user data
       const updatedProfile = {
         ...profile,
         isActive: true,
@@ -145,23 +148,14 @@ export function ProfileManager() {
         serverInfo
       };
 
-      // Deactivate all other profiles first
-      const allProfiles = profiles.map((p) => ({
-        ...p,
-        isActive: p.id === profile.id
-      }));
+      // Save updated profile
+      await profileServiceIndexedDB.saveProfile(updatedProfile);
 
-      // Save all profiles with updated active status
-      await Promise.all(allProfiles.map((p) => profileService.saveProfile(p)));
-
-      // Update store
-      setProfiles(allProfiles);
-
-      // Set as current profile
-      setCurrentProfile(profile.id);
-      setAuthenticated(true);
-      setUserProfile(userProfile);
-      setServerInfo(serverInfo);
+      // Set as current profile (this will handle deactivating others)
+      await setCurrentProfile(profile.id);
+      await setAuthenticated(true);
+      await setUserProfile(userProfile);
+      await setServerInfo(serverInfo);
 
       console.log(`Switched to profile: ${profile.name}`);
 

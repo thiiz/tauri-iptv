@@ -12,7 +12,9 @@ import type {
   XtreamConfig
 } from '@/types/iptv';
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { indexedDBService } from './indexeddb-service';
+import { iptvDataService } from './iptv-data-service';
+import { profileServiceIndexedDB } from './profile-service-indexeddb';
 
 interface IPTVStore {
   // Profile Management
@@ -58,22 +60,25 @@ interface IPTVStore {
   settings: AppSettings;
 
   // Actions
-  setProfiles: (profiles: ProfileAccount[]) => void;
-  addProfile: (profile: ProfileAccount) => void;
-  updateProfile: (profileId: string, updates: Partial<ProfileAccount>) => void;
-  deleteProfile: (profileId: string) => void;
-  setCurrentProfile: (profileId: string | null) => void;
-  getCurrentProfile: () => ProfileAccount | null;
+  setProfiles: (profiles: ProfileAccount[]) => Promise<void>;
+  addProfile: (profile: ProfileAccount) => Promise<void>;
+  updateProfile: (
+    profileId: string,
+    updates: Partial<ProfileAccount>
+  ) => Promise<void>;
+  deleteProfile: (profileId: string) => Promise<void>;
+  setCurrentProfile: (profileId: string | null) => Promise<void>;
+  getCurrentProfile: () => Promise<ProfileAccount | null>;
   setConfig: (config: XtreamConfig) => void;
   setAuthenticated: (authenticated: boolean) => void;
-  setUserProfile: (profile: UserProfile) => void;
-  setServerInfo: (info: ServerInfo) => void;
-  setChannelCategories: (categories: Category[]) => void;
-  setMovieCategories: (categories: Category[]) => void;
-  setShowCategories: (categories: Category[]) => void;
-  setChannels: (channels: Channel[]) => void;
-  setMovies: (movies: Movie[]) => void;
-  setShows: (shows: Show[]) => void;
+  setUserProfile: (profile: UserProfile) => Promise<void>;
+  setServerInfo: (info: ServerInfo) => Promise<void>;
+  setChannelCategories: (categories: Category[]) => Promise<void>;
+  setMovieCategories: (categories: Category[]) => Promise<void>;
+  setShowCategories: (categories: Category[]) => Promise<void>;
+  setChannels: (channels: Channel[]) => Promise<void>;
+  setMovies: (movies: Movie[]) => Promise<void>;
+  setShows: (shows: Show[]) => Promise<void>;
   setCurrentView: (
     view: 'dashboard' | 'channels' | 'movies' | 'shows' | 'settings'
   ) => void;
@@ -82,18 +87,261 @@ interface IPTVStore {
   setError: (error: string | null) => void;
   setCurrentStream: (stream: IPTVStore['currentStream']) => void;
   setPlaying: (playing: boolean) => void;
-  addFavorite: (item: FavoriteItem) => void;
-  removeFavorite: (id: string) => void;
-  addToHistory: (item: WatchHistory) => void;
-  updateSettings: (settings: Partial<AppSettings>) => void;
-  clearData: () => void;
+  addFavorite: (item: FavoriteItem) => Promise<void>;
+  removeFavorite: (id: string) => Promise<void>;
+  addToHistory: (item: WatchHistory) => Promise<void>;
+  updateSettings: (settings: Partial<AppSettings>) => Promise<void>;
+  clearData: () => Promise<void>;
+
+  // Async data loading actions
+  loadProfiles: () => Promise<void>;
+  loadFavorites: () => Promise<void>;
+  loadWatchHistory: () => Promise<void>;
+  loadSettings: () => Promise<void>;
+  loadChannelCategories: () => Promise<void>;
+  loadMovieCategories: () => Promise<void>;
+  loadShowCategories: () => Promise<void>;
+  loadChannels: (categoryId?: string) => Promise<void>;
+  loadMovies: (categoryId?: string) => Promise<void>;
+  loadShows: (categoryId?: string) => Promise<void>;
+
+  // Async API fetching actions
+  fetchChannelCategories: (forceRefresh?: boolean) => Promise<void>;
+  fetchMovieCategories: (forceRefresh?: boolean) => Promise<void>;
+  fetchShowCategories: (forceRefresh?: boolean) => Promise<void>;
+  fetchChannels: (
+    options?: { categoryId?: string },
+    forceRefresh?: boolean
+  ) => Promise<void>;
+  fetchMovies: (
+    options?: { categoryId?: string },
+    forceRefresh?: boolean
+  ) => Promise<void>;
+  fetchShows: (
+    options?: { categoryId?: string },
+    forceRefresh?: boolean
+  ) => Promise<void>;
+  fetchUserProfile: (forceRefresh?: boolean) => Promise<void>;
+  fetchServerInfo: (forceRefresh?: boolean) => Promise<void>;
 }
 
-export const useIPTVStore = create<IPTVStore>()(
-  persist(
-    (set, get) => ({
-      // Initial state
-      profiles: [],
+export const useIPTVStore = create<IPTVStore>()((set, get) => ({
+  // Initial state
+  profiles: [],
+  currentProfileId: null,
+  config: null,
+  isAuthenticated: false,
+  userProfile: null,
+  serverInfo: null,
+  channelCategories: [],
+  movieCategories: [],
+  showCategories: [],
+  channels: [],
+  movies: [],
+  shows: [],
+  currentView: 'dashboard',
+  selectedCategory: null,
+  isLoading: false,
+  error: null,
+  currentStream: null,
+  isPlaying: false,
+  favorites: [],
+  watchHistory: [],
+  settings: {
+    theme: 'system',
+    autoplay: false,
+    defaultQuality: 'm3u8',
+    alwaysOnTop: false,
+    minimizeToTray: true,
+    startWithSystem: false,
+    enableNotifications: true,
+    cacheSize: 500
+  },
+
+  // Actions
+  setProfiles: async (profiles) => {
+    set({ profiles });
+    // Save to IndexedDB
+    for (const profile of profiles) {
+      await profileServiceIndexedDB.saveProfile(profile);
+    }
+  },
+
+  addProfile: async (profile) => {
+    const { profiles } = get();
+    const newProfiles = [...profiles, profile];
+    set({ profiles: newProfiles });
+    await profileServiceIndexedDB.saveProfile(profile);
+  },
+
+  updateProfile: async (profileId, updates) => {
+    const { profiles } = get();
+    const updatedProfiles = profiles.map((p) =>
+      p.id === profileId ? { ...p, ...updates } : p
+    );
+    set({ profiles: updatedProfiles });
+
+    const updatedProfile = updatedProfiles.find((p) => p.id === profileId);
+    if (updatedProfile) {
+      await profileServiceIndexedDB.saveProfile(updatedProfile);
+    }
+  },
+
+  deleteProfile: async (profileId) => {
+    const { profiles, currentProfileId } = get();
+    const updatedProfiles = profiles.filter((p) => p.id !== profileId);
+    const newCurrentProfileId =
+      currentProfileId === profileId ? null : currentProfileId;
+
+    set({
+      profiles: updatedProfiles,
+      currentProfileId: newCurrentProfileId,
+      config: newCurrentProfileId ? get().config : null,
+      isAuthenticated: newCurrentProfileId ? get().isAuthenticated : false
+    });
+
+    await profileServiceIndexedDB.deleteProfile(profileId);
+  },
+
+  setCurrentProfile: async (profileId) => {
+    const profile = await profileServiceIndexedDB.getProfile(profileId);
+    if (profile) {
+      await profileServiceIndexedDB.setActiveProfile(profileId);
+      await iptvDataService.initializeWithProfile(profile);
+
+      set({
+        currentProfileId: profileId,
+        config: profile.config,
+        isAuthenticated: true,
+        userProfile: profile.userProfile || null,
+        serverInfo: profile.serverInfo || null
+      });
+
+      // Update last used
+      await profileServiceIndexedDB.updateProfileLastUsed(profileId);
+    }
+  },
+
+  getCurrentProfile: async () => {
+    const { currentProfileId } = get();
+    if (currentProfileId) {
+      return await profileServiceIndexedDB.getProfile(currentProfileId);
+    }
+    return null;
+  },
+
+  setConfig: (config) => set({ config }),
+  setAuthenticated: (authenticated) => set({ isAuthenticated: authenticated }),
+  setUserProfile: async (profile) => {
+    set({ userProfile: profile });
+    const { currentProfileId } = get();
+    if (currentProfileId) {
+      await profileServiceIndexedDB.updateProfileUserData(
+        currentProfileId,
+        profile,
+        get().serverInfo
+      );
+    }
+  },
+
+  setServerInfo: async (info) => {
+    set({ serverInfo: info });
+    const { currentProfileId } = get();
+    if (currentProfileId) {
+      await profileServiceIndexedDB.updateProfileUserData(
+        currentProfileId,
+        get().userProfile,
+        info
+      );
+    }
+  },
+
+  setChannelCategories: async (categories) => {
+    set({ channelCategories: categories });
+    await indexedDBService.saveCategories('channel', categories);
+  },
+
+  setMovieCategories: async (categories) => {
+    set({ movieCategories: categories });
+    await indexedDBService.saveCategories('movie', categories);
+  },
+
+  setShowCategories: async (categories) => {
+    set({ showCategories: categories });
+    await indexedDBService.saveCategories('show', categories);
+  },
+
+  setChannels: async (channels) => {
+    set({ channels });
+    await indexedDBService.saveChannels(channels);
+  },
+
+  setMovies: async (movies) => {
+    set({ movies });
+    await indexedDBService.saveMovies(movies);
+  },
+
+  setShows: async (shows) => {
+    set({ shows });
+    await indexedDBService.saveShows(shows);
+  },
+  setCurrentView: (view) => set({ currentView: view }),
+  setSelectedCategory: (categoryId) => set({ selectedCategory: categoryId }),
+  setLoading: (loading) => set({ isLoading: loading }),
+  setError: (error) => set({ error }),
+  setCurrentStream: (stream) => set({ currentStream: stream }),
+  setPlaying: (playing) => set({ isPlaying: playing }),
+
+  addFavorite: async (item) => {
+    const { favorites } = get();
+    if (
+      !favorites.find((fav) => fav.id === item.id && fav.type === item.type)
+    ) {
+      const newFavorites = [...favorites, item];
+      set({ favorites: newFavorites });
+      await indexedDBService.addFavorite(item);
+    }
+  },
+
+  removeFavorite: async (id) => {
+    const { favorites } = get();
+    const newFavorites = favorites.filter((fav) => fav.id !== id);
+    set({ favorites: newFavorites });
+    await indexedDBService.removeFavorite(id);
+  },
+
+  addToHistory: async (item) => {
+    const { watchHistory } = get();
+    const existingIndex = watchHistory.findIndex(
+      (h) => h.id === item.id && h.type === item.type
+    );
+
+    if (existingIndex >= 0) {
+      // Update existing entry
+      const updated = [...watchHistory];
+      updated[existingIndex] = {
+        ...updated[existingIndex],
+        watchedAt: item.watchedAt
+      };
+      set({ watchHistory: updated });
+    } else {
+      // Add new entry (keep only last 100 items)
+      const updated = [item, ...watchHistory].slice(0, 100);
+      set({ watchHistory: updated });
+    }
+
+    await indexedDBService.addToHistory(item);
+  },
+
+  updateSettings: async (newSettings) => {
+    const { settings } = get();
+    const updatedSettings = { ...settings, ...newSettings };
+    set({ settings: updatedSettings });
+    await indexedDBService.saveSettings(updatedSettings);
+  },
+
+  clearData: async () => {
+    set({
       currentProfileId: null,
       config: null,
       isAuthenticated: false,
@@ -105,159 +353,247 @@ export const useIPTVStore = create<IPTVStore>()(
       channels: [],
       movies: [],
       shows: [],
-      currentView: 'dashboard',
-      selectedCategory: null,
-      isLoading: false,
-      error: null,
       currentStream: null,
       isPlaying: false,
-      favorites: [],
-      watchHistory: [],
-      settings: {
-        theme: 'system',
-        autoplay: false,
-        defaultQuality: 'm3u8',
-        alwaysOnTop: false,
-        minimizeToTray: true,
-        startWithSystem: false,
-        enableNotifications: true,
-        cacheSize: 500
-      },
+      error: null
+    });
+    await indexedDBService.clearAllData();
+  },
 
-      // Actions
-      setProfiles: (profiles) => set({ profiles }),
+  // Async actions for loading data from IndexedDB
+  loadProfiles: async () => {
+    try {
+      const profiles = await profileServiceIndexedDB.getProfiles();
+      set({ profiles });
 
-      addProfile: (profile) => {
-        const { profiles } = get();
-        set({ profiles: [...profiles, profile] });
-      },
-
-      updateProfile: (profileId, updates) => {
-        const { profiles } = get();
-        const updatedProfiles = profiles.map((p) =>
-          p.id === profileId ? { ...p, ...updates } : p
-        );
-        set({ profiles: updatedProfiles });
-      },
-
-      deleteProfile: (profileId) => {
-        const { profiles, currentProfileId } = get();
-        const updatedProfiles = profiles.filter((p) => p.id !== profileId);
-        const newCurrentProfileId =
-          currentProfileId === profileId ? null : currentProfileId;
+      // Set active profile if exists
+      const activeProfile = profiles.find((p) => p.isActive);
+      if (activeProfile) {
         set({
-          profiles: updatedProfiles,
-          currentProfileId: newCurrentProfileId,
-          config: newCurrentProfileId ? get().config : null,
-          isAuthenticated: newCurrentProfileId ? get().isAuthenticated : false
+          currentProfileId: activeProfile.id,
+          config: activeProfile.config,
+          isAuthenticated: true,
+          userProfile: activeProfile.userProfile || null,
+          serverInfo: activeProfile.serverInfo || null
         });
-      },
-
-      setCurrentProfile: (profileId) => {
-        const { profiles } = get();
-        const profile = profiles.find((p) => p.id === profileId);
-        set({
-          currentProfileId: profileId,
-          config: profile?.config || null,
-          isAuthenticated: !!profile,
-          userProfile: profile?.userProfile || null,
-          serverInfo: profile?.serverInfo || null
-        });
-      },
-
-      getCurrentProfile: () => {
-        const { profiles, currentProfileId } = get();
-        return profiles.find((p) => p.id === currentProfileId) || null;
-      },
-
-      setConfig: (config) => set({ config }),
-      setAuthenticated: (authenticated) =>
-        set({ isAuthenticated: authenticated }),
-      setUserProfile: (profile) => set({ userProfile: profile }),
-      setServerInfo: (info) => set({ serverInfo: info }),
-      setChannelCategories: (categories) =>
-        set({ channelCategories: categories }),
-      setMovieCategories: (categories) => set({ movieCategories: categories }),
-      setShowCategories: (categories) => set({ showCategories: categories }),
-      setChannels: (channels) => set({ channels }),
-      setMovies: (movies) => set({ movies }),
-      setShows: (shows) => set({ shows }),
-      setCurrentView: (view) => set({ currentView: view }),
-      setSelectedCategory: (categoryId) =>
-        set({ selectedCategory: categoryId }),
-      setLoading: (loading) => set({ isLoading: loading }),
-      setError: (error) => set({ error }),
-      setCurrentStream: (stream) => set({ currentStream: stream }),
-      setPlaying: (playing) => set({ isPlaying: playing }),
-
-      addFavorite: (item) => {
-        const { favorites } = get();
-        if (
-          !favorites.find((fav) => fav.id === item.id && fav.type === item.type)
-        ) {
-          set({ favorites: [...favorites, item] });
-        }
-      },
-
-      removeFavorite: (id) => {
-        const { favorites } = get();
-        set({ favorites: favorites.filter((fav) => fav.id !== id) });
-      },
-
-      addToHistory: (item) => {
-        const { watchHistory } = get();
-        const existingIndex = watchHistory.findIndex(
-          (h) => h.id === item.id && h.type === item.type
-        );
-
-        if (existingIndex >= 0) {
-          // Update existing entry
-          const updated = [...watchHistory];
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            watchedAt: item.watchedAt
-          };
-          set({ watchHistory: updated });
-        } else {
-          // Add new entry (keep only last 100 items)
-          const updated = [item, ...watchHistory].slice(0, 100);
-          set({ watchHistory: updated });
-        }
-      },
-
-      updateSettings: (newSettings) => {
-        const { settings } = get();
-        set({ settings: { ...settings, ...newSettings } });
-      },
-
-      clearData: () =>
-        set({
-          currentProfileId: null,
-          config: null,
-          isAuthenticated: false,
-          userProfile: null,
-          serverInfo: null,
-          channelCategories: [],
-          movieCategories: [],
-          showCategories: [],
-          channels: [],
-          movies: [],
-          shows: [],
-          currentStream: null,
-          isPlaying: false,
-          error: null
-        })
-    }),
-    {
-      name: 'iptv-store',
-      partialize: (state) => ({
-        profiles: state.profiles,
-        currentProfileId: state.currentProfileId,
-        config: state.config,
-        favorites: state.favorites,
-        watchHistory: state.watchHistory,
-        settings: state.settings
-      })
+      }
+    } catch (error) {
+      console.error('Failed to load profiles:', error);
     }
-  )
-);
+  },
+
+  loadFavorites: async () => {
+    try {
+      const favorites = await indexedDBService.getFavorites();
+      set({ favorites });
+    } catch (error) {
+      console.error('Failed to load favorites:', error);
+    }
+  },
+
+  loadWatchHistory: async () => {
+    try {
+      const watchHistory = await indexedDBService.getWatchHistory();
+      set({ watchHistory });
+    } catch (error) {
+      console.error('Failed to load watch history:', error);
+    }
+  },
+
+  loadSettings: async () => {
+    try {
+      const settings = await indexedDBService.getSettings();
+      if (settings) {
+        set({ settings });
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
+  },
+
+  loadChannelCategories: async () => {
+    try {
+      const categories = await indexedDBService.getCategories('channel');
+      set({ channelCategories: categories });
+    } catch (error) {
+      console.error('Failed to load channel categories:', error);
+    }
+  },
+
+  loadMovieCategories: async () => {
+    try {
+      const categories = await indexedDBService.getCategories('movie');
+      set({ movieCategories: categories });
+    } catch (error) {
+      console.error('Failed to load movie categories:', error);
+    }
+  },
+
+  loadShowCategories: async () => {
+    try {
+      const categories = await indexedDBService.getCategories('show');
+      set({ showCategories: categories });
+    } catch (error) {
+      console.error('Failed to load show categories:', error);
+    }
+  },
+
+  loadChannels: async (categoryId?: string) => {
+    try {
+      const channels = await indexedDBService.getChannels(categoryId);
+      set({ channels });
+    } catch (error) {
+      console.error('Failed to load channels:', error);
+    }
+  },
+
+  loadMovies: async (categoryId?: string) => {
+    try {
+      const movies = await indexedDBService.getMovies(categoryId);
+      set({ movies });
+    } catch (error) {
+      console.error('Failed to load movies:', error);
+    }
+  },
+
+  loadShows: async (categoryId?: string) => {
+    try {
+      const shows = await indexedDBService.getShows(categoryId);
+      set({ shows });
+    } catch (error) {
+      console.error('Failed to load shows:', error);
+    }
+  },
+
+  // Async actions for fetching from API
+  fetchChannelCategories: async (forceRefresh = false) => {
+    try {
+      set({ isLoading: true, error: null });
+      const categories =
+        await iptvDataService.getChannelCategories(forceRefresh);
+      set({ channelCategories: categories, isLoading: false });
+    } catch (error) {
+      set({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch channel categories',
+        isLoading: false
+      });
+    }
+  },
+
+  fetchMovieCategories: async (forceRefresh = false) => {
+    try {
+      set({ isLoading: true, error: null });
+      const categories = await iptvDataService.getMovieCategories(forceRefresh);
+      set({ movieCategories: categories, isLoading: false });
+    } catch (error) {
+      set({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch movie categories',
+        isLoading: false
+      });
+    }
+  },
+
+  fetchShowCategories: async (forceRefresh = false) => {
+    try {
+      set({ isLoading: true, error: null });
+      const categories = await iptvDataService.getShowCategories(forceRefresh);
+      set({ showCategories: categories, isLoading: false });
+    } catch (error) {
+      set({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch show categories',
+        isLoading: false
+      });
+    }
+  },
+
+  fetchChannels: async (
+    options?: { categoryId?: string },
+    forceRefresh = false
+  ) => {
+    try {
+      set({ isLoading: true, error: null });
+      const channels = await iptvDataService.getChannels(options, forceRefresh);
+      set({ channels, isLoading: false });
+    } catch (error) {
+      set({
+        error:
+          error instanceof Error ? error.message : 'Failed to fetch channels',
+        isLoading: false
+      });
+    }
+  },
+
+  fetchMovies: async (
+    options?: { categoryId?: string },
+    forceRefresh = false
+  ) => {
+    try {
+      set({ isLoading: true, error: null });
+      const movies = await iptvDataService.getMovies(options, forceRefresh);
+      set({ movies, isLoading: false });
+    } catch (error) {
+      set({
+        error:
+          error instanceof Error ? error.message : 'Failed to fetch movies',
+        isLoading: false
+      });
+    }
+  },
+
+  fetchShows: async (
+    options?: { categoryId?: string },
+    forceRefresh = false
+  ) => {
+    try {
+      set({ isLoading: true, error: null });
+      const shows = await iptvDataService.getShows(options, forceRefresh);
+      set({ shows, isLoading: false });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to fetch shows',
+        isLoading: false
+      });
+    }
+  },
+
+  fetchUserProfile: async (forceRefresh = false) => {
+    try {
+      set({ isLoading: true, error: null });
+      const userProfile = await iptvDataService.getUserProfile(forceRefresh);
+      set({ userProfile, isLoading: false });
+    } catch (error) {
+      set({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch user profile',
+        isLoading: false
+      });
+    }
+  },
+
+  fetchServerInfo: async (forceRefresh = false) => {
+    try {
+      set({ isLoading: true, error: null });
+      const serverInfo = await iptvDataService.getServerInfo(forceRefresh);
+      set({ serverInfo, isLoading: false });
+    } catch (error) {
+      set({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch server info',
+        isLoading: false
+      });
+    }
+  }
+}));
