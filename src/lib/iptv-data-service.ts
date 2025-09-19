@@ -184,7 +184,13 @@ export class IPTVDataService {
       }));
 
       await this.ensureDBInitialized();
-      await indexedDBService.saveCategories('channel', formattedCategories);
+      if (this.currentProfile) {
+        await indexedDBService.saveCategories(
+          'channel',
+          formattedCategories,
+          this.currentProfile.id
+        );
+      }
       return formattedCategories;
     } catch (error) {
       console.error('Failed to get channel categories:', error);
@@ -215,7 +221,13 @@ export class IPTVDataService {
       }));
 
       await this.ensureDBInitialized();
-      await indexedDBService.saveCategories('movie', formattedCategories);
+      if (this.currentProfile) {
+        await indexedDBService.saveCategories(
+          'movie',
+          formattedCategories,
+          this.currentProfile.id
+        );
+      }
       return formattedCategories;
     } catch (error) {
       console.error('Failed to get movie categories:', error);
@@ -246,7 +258,13 @@ export class IPTVDataService {
       }));
 
       await this.ensureDBInitialized();
-      await indexedDBService.saveCategories('show', formattedCategories);
+      if (this.currentProfile) {
+        await indexedDBService.saveCategories(
+          'show',
+          formattedCategories,
+          this.currentProfile.id
+        );
+      }
       return formattedCategories;
     } catch (error) {
       console.error('Failed to get show categories:', error);
@@ -294,7 +312,12 @@ export class IPTVDataService {
       }));
 
       await this.ensureDBInitialized();
-      await indexedDBService.saveChannels(formattedChannels);
+      if (this.currentProfile) {
+        await indexedDBService.saveChannels(
+          formattedChannels,
+          this.currentProfile.id
+        );
+      }
       return formattedChannels;
     } catch (error) {
       console.error('Failed to get channels:', error);
@@ -341,7 +364,12 @@ export class IPTVDataService {
       }));
 
       await this.ensureDBInitialized();
-      await indexedDBService.saveMovies(formattedMovies);
+      if (this.currentProfile) {
+        await indexedDBService.saveMovies(
+          formattedMovies,
+          this.currentProfile.id
+        );
+      }
       return formattedMovies;
     } catch (error) {
       console.error('Failed to get movies:', error);
@@ -394,7 +422,12 @@ export class IPTVDataService {
 
       // Update the movie in IndexedDB with full details
       await this.ensureDBInitialized();
-      await indexedDBService.saveMovies([movieDetails]);
+      if (this.currentProfile) {
+        await indexedDBService.saveMovies(
+          [movieDetails],
+          this.currentProfile.id
+        );
+      }
 
       return movieDetails;
     } catch (error) {
@@ -440,7 +473,12 @@ export class IPTVDataService {
       }));
 
       await this.ensureDBInitialized();
-      await indexedDBService.saveShows(formattedShows);
+      if (this.currentProfile) {
+        await indexedDBService.saveShows(
+          formattedShows,
+          this.currentProfile.id
+        );
+      }
       return formattedShows;
     } catch (error) {
       console.error('Failed to get shows:', error);
@@ -490,7 +528,9 @@ export class IPTVDataService {
 
       // Update the show in IndexedDB with full details
       await this.ensureDBInitialized();
-      await indexedDBService.saveShows([showDetails]);
+      if (this.currentProfile) {
+        await indexedDBService.saveShows([showDetails], this.currentProfile.id);
+      }
 
       // Save episodes if available
       if (showDetails.episodes && showDetails.episodes.length > 0) {

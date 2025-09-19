@@ -104,6 +104,9 @@ export function ProfileManager() {
 
       setIsAddDialogOpen(false);
       console.log('Profile added successfully');
+
+      // Automatically activate the new profile
+      await handleActivateProfile(profile);
     } catch (error) {
       console.error('Failed to add profile:', error);
     } finally {

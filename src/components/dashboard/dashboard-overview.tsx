@@ -13,6 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIPTVStore } from '@/lib/store';
 import { iptvDataService } from '@/lib/iptv-data-service';
 import type { Channel, Movie, Show } from '@/types/iptv';
+import { DownloadSection } from './download-section';
 import {
   Clock,
   Film,
@@ -43,7 +44,8 @@ export function DashboardOverview() {
     fetchChannels,
     fetchMovies,
     fetchShows,
-    setCurrentView
+    setCurrentView,
+    checkContentDownloaded
   } = useIPTVStore();
 
   const [recentChannels, setRecentChannels] = useState<Channel[]>([]);
@@ -55,6 +57,9 @@ export function DashboardOverview() {
     const loadRecentContent = async () => {
       setIsLoading(true);
       try {
+        // Check download status first
+        await checkContentDownloaded();
+
         // Load from cache first
         await Promise.all([loadChannels(), loadMovies(), loadShows()]);
 
@@ -82,7 +87,8 @@ export function DashboardOverview() {
     loadShows,
     fetchChannels,
     fetchMovies,
-    fetchShows
+    fetchShows,
+    checkContentDownloaded
   ]);
 
   // Update local state when store state changes
@@ -138,6 +144,9 @@ export function DashboardOverview() {
           Bem-vindo de volta, {userProfile?.username || 'Usuário'}
         </p>
       </div>
+
+      {/* Download Section */}
+      <DownloadSection />
 
       {/* Stats Cards */}
       <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
@@ -343,7 +352,7 @@ export function DashboardOverview() {
               <Button
                 variant='outline'
                 className='mt-4 w-full'
-                onClick={() => setCurrentView('history')}
+                onClick={() => setCurrentView('favorites' as any)}
               >
                 Ver Histórico Completo
               </Button>

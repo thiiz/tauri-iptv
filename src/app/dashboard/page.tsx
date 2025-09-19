@@ -27,6 +27,7 @@ export default function DashboardPage() {
     fetchShowCategories,
     fetchUserProfile,
     fetchServerInfo,
+    checkContentDownloaded,
     setLoading,
     setError
   } = useIPTVStore();
@@ -62,7 +63,8 @@ export default function DashboardPage() {
           fetchServerInfo(),
           fetchChannelCategories(),
           fetchMovieCategories(),
-          fetchShowCategories()
+          fetchShowCategories(),
+          checkContentDownloaded()
         ]);
       } catch (error) {
         console.error('Failed to initialize dashboard:', error);

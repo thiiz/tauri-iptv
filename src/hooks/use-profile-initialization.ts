@@ -11,7 +11,8 @@ export function useProfileInitialization() {
     loadWatchHistory,
     loadSettings,
     currentProfileId,
-    setCurrentProfile
+    setCurrentProfile,
+    checkContentDownloaded
   } = useIPTVStore();
 
   useEffect(() => {
@@ -30,6 +31,8 @@ export function useProfileInitialization() {
           const activeProfile = profiles.find((p) => p.isActive);
           if (activeProfile) {
             await setCurrentProfile(activeProfile.id);
+            // Check download status for the active profile
+            await checkContentDownloaded();
           }
         }
       } catch (error) {
