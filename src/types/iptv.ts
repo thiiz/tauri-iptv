@@ -110,7 +110,7 @@ export interface ShowDetails extends Show {
   youtubeTrailer?: string;
   tmdbId?: number;
   imdbId?: string;
-  episodes?: Episode[];
+  episodes?: { [season: number]: Episode[] };
 }
 
 export interface Episode {

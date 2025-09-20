@@ -554,7 +554,7 @@ export class IPTVDataService {
         youtubeTrailer: show.info?.youtubeTrailer || show.info?.youtube_trailer,
         tmdbId: show.info?.tmdbId || show.info?.tmdb_id,
         imdbId: show.info?.imdbId || show.info?.imdb_id,
-        episodes: show.episodes || []
+        episodes: show.episodes || {}
       };
 
       // Update the show in IndexedDB with full details
@@ -566,12 +566,12 @@ export class IPTVDataService {
       // Save episodes if available
       if (
         showDetails.episodes &&
-        showDetails.episodes.length > 0 &&
+        Object.keys(showDetails.episodes).length > 0 &&
         this.currentProfile
       ) {
         await indexedDBService.saveEpisodes(
           showId,
-          showDetails.episodes,
+          Object.values(showDetails.episodes).flat(),
           this.currentProfile.id
         );
       }
@@ -596,7 +596,9 @@ export class IPTVDataService {
 
     // Get show details which includes episodes
     const showDetails = await this.getShowDetails(showId, forceRefresh);
-    return showDetails.episodes || [];
+    return showDetails.episodes
+      ? Object.values(showDetails.episodes).flat()
+      : [];
   }
 
   // EPG methods

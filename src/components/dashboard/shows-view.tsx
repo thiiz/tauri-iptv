@@ -16,10 +16,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useIPTVStore } from '@/lib/store';
 import type { Show } from '@/types/iptv';
 import { Grid3X3, List, MonitorPlay, Play, Search, Star } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 export function ShowsView() {
+  const router = useRouter();
   const {
     showCategories,
     shows,
@@ -67,7 +69,8 @@ export function ShowsView() {
   }, [shows, searchQuery]);
 
   const handleViewShow = (show: Show) => {
-    toast.info(`Viewing details for: ${show.name}`);
+    // Navigate to series details page
+    router.push(`/dashboard/series/${show.id}`);
   };
 
   const handleToggleFavorite = (show: Show) => {
