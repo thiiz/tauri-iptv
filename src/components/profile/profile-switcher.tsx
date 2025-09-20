@@ -11,11 +11,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { useIPTVStore } from '@/lib/store';
 import { iptvDataService } from '@/lib/iptv-data-service';
-import { profileServiceIndexedDB } from '@/lib/profile-service-indexeddb';
+import { useIPTVStore } from '@/lib/store';
 import { ChevronDown, Plus, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 interface ProfileSwitcherProps {
   onManageProfiles?: () => void;
@@ -66,7 +66,7 @@ export function ProfileSwitcher({ onManageProfiles }: ProfileSwitcherProps) {
       // Test connection
       const isConnected = await iptvDataService.testConnection();
       if (!isConnected) {
-        console.error('Failed to connect to this profile');
+        toast.error('Failed to connect to this profile');
         return;
       }
 
@@ -82,9 +82,9 @@ export function ProfileSwitcher({ onManageProfiles }: ProfileSwitcherProps) {
       await setUserProfile(userProfile);
       await setServerInfo(serverInfo);
 
-      console.log(`Switched to ${profile.name}`);
+      toast.success(`Switched to ${profile.name}`);
     } catch (error) {
-      console.error('Failed to switch profile:', error);
+      toast.error('Failed to switch profile. Please try again.');
     } finally {
       setIsLoading(false);
     }

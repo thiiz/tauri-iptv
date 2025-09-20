@@ -55,7 +55,8 @@ export class IPTVDataService {
 
   private async makeRequest(
     action: string,
-    additionalParams: Record<string, string> = {}
+    additionalParams: Record<string, string> = {},
+    maxRetries = 3
   ): Promise<any> {
     this.ensureInitialized();
 
@@ -72,16 +73,37 @@ export class IPTVDataService {
       apiUrl = apiUrl.replace(/\/$/, '') + '/player_api.php';
     }
 
-    const response = await invoke<ApiResponse<any>>('iptv_request', {
-      url: apiUrl,
-      params
-    });
+    let lastError: Error | null = null;
 
-    if (!response.success) {
-      throw new Error(response.error || 'Request failed');
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await invoke<ApiResponse<any>>('iptv_request', {
+          url: apiUrl,
+          params
+        });
+
+        if (!response.success) {
+          throw new Error(response.error || 'Request failed');
+        }
+
+        return response.data;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        console.warn(
+          `Request attempt ${attempt + 1} failed:`,
+          lastError.message
+        );
+
+        if (attempt < maxRetries) {
+          // Exponential backoff: 1s, 2s, 4s, etc.
+          const delay = Math.pow(2, attempt) * 1000;
+          console.log(`Retrying in ${delay}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
     }
 
-    return response.data;
+    throw lastError || new Error('Request failed after retries');
   }
 
   // Profile and Server Info methods

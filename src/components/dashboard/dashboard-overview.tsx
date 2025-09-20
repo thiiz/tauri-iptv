@@ -23,6 +23,7 @@ import {
   Tv
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { DownloadSection } from './download-section';
 
 export function DashboardOverview() {
@@ -62,7 +63,9 @@ export function DashboardOverview() {
         // Load content from IndexedDB only
         await Promise.all([loadChannels(), loadMovies(), loadShows()]);
       } catch (error) {
-        console.error('Failed to load recent content:', error);
+        toast.error(
+          'Failed to load recent content. Please try refreshing the page.'
+        );
         setError(
           'Failed to load recent content. Please try refreshing the page.'
         );
@@ -81,40 +84,40 @@ export function DashboardOverview() {
 
   const stats = [
     {
-      title: 'Canais',
+      title: 'Channels',
       value: contentDownloaded.channels ? channelCategories.length : 0,
       icon: Tv,
       description: contentDownloaded.channels
-        ? 'Categorias disponíveis'
-        : 'Faça download para ver',
+        ? 'Categories available'
+        : 'Download to view',
       color: 'text-blue-600',
       bgColor: 'bg-blue-100 dark:bg-blue-900'
     },
     {
-      title: 'Filmes',
+      title: 'Movies',
       value: contentDownloaded.movies ? movieCategories.length : 0,
       icon: Film,
       description: contentDownloaded.movies
-        ? 'Categorias de filmes'
-        : 'Faça download para ver',
+        ? 'Movie categories'
+        : 'Download to view',
       color: 'text-green-600',
       bgColor: 'bg-green-100 dark:bg-green-900'
     },
     {
-      title: 'Séries',
+      title: 'Series',
       value: contentDownloaded.shows ? showCategories.length : 0,
       icon: MonitorPlay,
       description: contentDownloaded.shows
-        ? 'Categorias de séries'
-        : 'Faça download para ver',
+        ? 'Series categories'
+        : 'Download to view',
       color: 'text-purple-600',
       bgColor: 'bg-purple-100 dark:bg-purple-900'
     },
     {
-      title: 'Favoritos',
+      title: 'Favorites',
       value: favorites.length,
       icon: Star,
-      description: 'Itens favoritados',
+      description: 'Favorited items',
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-100 dark:bg-yellow-900'
     }
@@ -128,7 +131,7 @@ export function DashboardOverview() {
       <div>
         <h1 className='text-3xl font-bold tracking-tight'>Dashboard</h1>
         <p className='text-muted-foreground'>
-          Bem-vindo de volta, {userProfile?.username || 'Usuário'}
+          Welcome back, {userProfile?.username || 'User'}
         </p>
       </div>
 
@@ -167,9 +170,9 @@ export function DashboardOverview() {
             <CardHeader>
               <CardTitle className='flex items-center gap-2'>
                 <Tv className='h-5 w-5' />
-                Canais Recentes
+                Recent Channels
               </CardTitle>
-              <CardDescription>Últimos canais adicionados</CardDescription>
+              <CardDescription>Latest added channels</CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className='h-48'>
@@ -196,7 +199,7 @@ export function DashboardOverview() {
                             {channel.name}
                           </div>
                           <div className='text-muted-foreground text-xs'>
-                            Canal #{channel.id}
+                            Channel #{channel.id}
                           </div>
                         </div>
                       </div>
@@ -212,7 +215,7 @@ export function DashboardOverview() {
                 className='mt-4 w-full'
                 onClick={() => setCurrentView('channels')}
               >
-                Ver Todos os Canais
+                View All Channels
               </Button>
             </CardContent>
           </Card>
@@ -224,9 +227,9 @@ export function DashboardOverview() {
             <CardHeader>
               <CardTitle className='flex items-center gap-2'>
                 <Film className='h-5 w-5' />
-                Filmes Recentes
+                Recent Movies
               </CardTitle>
-              <CardDescription>Últimos filmes adicionados</CardDescription>
+              <CardDescription>Latest added movies</CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className='h-48'>
@@ -270,7 +273,7 @@ export function DashboardOverview() {
                 className='mt-4 w-full'
                 onClick={() => setCurrentView('movies')}
               >
-                Ver Todos os Filmes
+                View All Movies
               </Button>
             </CardContent>
           </Card>
@@ -282,9 +285,9 @@ export function DashboardOverview() {
             <CardHeader>
               <CardTitle className='flex items-center gap-2'>
                 <MonitorPlay className='h-5 w-5' />
-                Séries Recentes
+                Recent Series
               </CardTitle>
-              <CardDescription>Últimas séries adicionadas</CardDescription>
+              <CardDescription>Latest added series</CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className='h-48'>
@@ -326,7 +329,7 @@ export function DashboardOverview() {
                 className='mt-4 w-full'
                 onClick={() => setCurrentView('shows')}
               >
-                Ver Todas as Séries
+                View All Series
               </Button>
             </CardContent>
           </Card>
@@ -341,9 +344,9 @@ export function DashboardOverview() {
             <CardHeader>
               <CardTitle className='flex items-center gap-2'>
                 <History className='h-5 w-5' />
-                Histórico Recente
+                Recent History
               </CardTitle>
-              <CardDescription>Últimos itens assistidos</CardDescription>
+              <CardDescription>Latest watched items</CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className='h-48'>
@@ -380,9 +383,9 @@ export function DashboardOverview() {
                             </div>
                             <div className='text-muted-foreground text-xs'>
                               <Badge variant='secondary' className='text-xs'>
-                                {item.type === 'channel' && 'Canal'}
-                                {item.type === 'movie' && 'Filme'}
-                                {item.type === 'episode' && 'Episódio'}
+                                {item.type === 'channel' && 'Channel'}
+                                {item.type === 'movie' && 'Movie'}
+                                {item.type === 'episode' && 'Episode'}
                               </Badge>
                               <span className='ml-2'>
                                 {new Date(item.watchedAt).toLocaleDateString()}
@@ -398,7 +401,7 @@ export function DashboardOverview() {
                   ) : (
                     <div className='text-muted-foreground py-8 text-center'>
                       <Clock className='mx-auto mb-2 h-8 w-8 opacity-50' />
-                      <p>Nenhum histórico ainda</p>
+                      <p>No history yet</p>
                     </div>
                   )}
                 </div>
@@ -409,7 +412,7 @@ export function DashboardOverview() {
                   className='mt-4 w-full'
                   onClick={() => setCurrentView('history')}
                 >
-                  Ver Histórico Completo
+                  View Complete History
                 </Button>
               )}
             </CardContent>
@@ -423,17 +426,17 @@ export function DashboardOverview() {
           <CardHeader>
             <CardTitle className='flex items-center gap-2'>
               <TrendingUp className='h-5 w-5' />
-              Informações do Servidor
+              Server Information
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
               <div>
-                <div className='text-sm font-medium'>Servidor</div>
+                <div className='text-sm font-medium'>Server</div>
                 <div className='text-2xl font-bold'>{serverInfo.url}</div>
               </div>
               <div>
-                <div className='text-sm font-medium'>Protocolo</div>
+                <div className='text-sm font-medium'>Protocol</div>
                 <div className='text-2xl font-bold'>
                   {serverInfo.serverProtocol}
                 </div>

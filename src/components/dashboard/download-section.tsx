@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useIPTVStore } from '@/lib/store';
-import { Download, Play, Film, Tv, CheckCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Download, Film, Loader2, Play, Tv } from 'lucide-react';
 
 export function DownloadSection() {
   const {
@@ -48,20 +48,16 @@ export function DownloadSection() {
     contentDownloaded.movies &&
     contentDownloaded.shows;
 
-  if (allDownloaded) {
-    return null; // Don't show if everything is downloaded
-  }
-
   return (
     <Card className='mb-6'>
       <CardHeader>
         <CardTitle className='flex items-center gap-2'>
           <Download className='h-5 w-5' />
-          Download de Conteúdo
+          Content Download
         </CardTitle>
         <CardDescription>
-          Baixe o conteúdo IPTV para acesso offline. Você pode baixar canais,
-          filmes ou séries separadamente.
+          Download IPTV content for offline access. You can download channels,
+          movies, or series separately.
         </CardDescription>
       </CardHeader>
       <CardContent className='space-y-4'>
@@ -76,12 +72,12 @@ export function DownloadSection() {
             {isDownloadingAny ? (
               <>
                 <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                Baixando...
+                Downloading...
               </>
             ) : (
               <>
                 <Download className='mr-2 h-4 w-4' />
-                Baixar Tudo
+                Download All
               </>
             )}
           </Button>
@@ -99,7 +95,7 @@ export function DownloadSection() {
               <div className='mb-2 flex items-center justify-between'>
                 <div className='flex items-center gap-2'>
                   <Play className='h-4 w-4 text-blue-600' />
-                  <span className='font-medium'>Canais</span>
+                  <span className='font-medium'>Channels</span>
                 </div>
                 {contentDownloaded.channels && (
                   <CheckCircle className='h-4 w-4 text-green-600' />
@@ -125,23 +121,20 @@ export function DownloadSection() {
 
               <Button
                 onClick={handleDownloadChannels}
-                disabled={
-                  downloadProgress.channels.isDownloading ||
-                  contentDownloaded.channels
-                }
+                disabled={downloadProgress.channels.isDownloading}
                 size='sm'
-                variant={contentDownloaded.channels ? 'secondary' : 'default'}
+                variant={contentDownloaded.channels ? 'outline' : 'default'}
                 className='mt-2 w-full'
               >
                 {downloadProgress.channels.isDownloading ? (
                   <>
                     <Loader2 className='mr-2 h-3 w-3 animate-spin' />
-                    Baixando...
+                    Downloading...
                   </>
                 ) : contentDownloaded.channels ? (
-                  'Concluído'
+                  'Re-download Channels'
                 ) : (
-                  'Baixar Canais'
+                  'Download Channels'
                 )}
               </Button>
             </CardContent>
@@ -157,7 +150,7 @@ export function DownloadSection() {
               <div className='mb-2 flex items-center justify-between'>
                 <div className='flex items-center gap-2'>
                   <Film className='h-4 w-4 text-red-600' />
-                  <span className='font-medium'>Filmes</span>
+                  <span className='font-medium'>Movies</span>
                 </div>
                 {contentDownloaded.movies && (
                   <CheckCircle className='h-4 w-4 text-green-600' />
@@ -183,23 +176,20 @@ export function DownloadSection() {
 
               <Button
                 onClick={handleDownloadMovies}
-                disabled={
-                  downloadProgress.movies.isDownloading ||
-                  contentDownloaded.movies
-                }
+                disabled={downloadProgress.movies.isDownloading}
                 size='sm'
-                variant={contentDownloaded.movies ? 'secondary' : 'default'}
+                variant={contentDownloaded.movies ? 'outline' : 'default'}
                 className='mt-2 w-full'
               >
                 {downloadProgress.movies.isDownloading ? (
                   <>
                     <Loader2 className='mr-2 h-3 w-3 animate-spin' />
-                    Baixando...
+                    Downloading...
                   </>
                 ) : contentDownloaded.movies ? (
-                  'Concluído'
+                  'Re-download Movies'
                 ) : (
-                  'Baixar Filmes'
+                  'Download Movies'
                 )}
               </Button>
             </CardContent>
@@ -215,7 +205,7 @@ export function DownloadSection() {
               <div className='mb-2 flex items-center justify-between'>
                 <div className='flex items-center gap-2'>
                   <Tv className='h-4 w-4 text-purple-600' />
-                  <span className='font-medium'>Séries</span>
+                  <span className='font-medium'>Series</span>
                 </div>
                 {contentDownloaded.shows && (
                   <CheckCircle className='h-4 w-4 text-green-600' />
@@ -241,23 +231,20 @@ export function DownloadSection() {
 
               <Button
                 onClick={handleDownloadShows}
-                disabled={
-                  downloadProgress.shows.isDownloading ||
-                  contentDownloaded.shows
-                }
+                disabled={downloadProgress.shows.isDownloading}
                 size='sm'
-                variant={contentDownloaded.shows ? 'secondary' : 'default'}
+                variant={contentDownloaded.shows ? 'outline' : 'default'}
                 className='mt-2 w-full'
               >
                 {downloadProgress.shows.isDownloading ? (
                   <>
                     <Loader2 className='mr-2 h-3 w-3 animate-spin' />
-                    Baixando...
+                    Downloading...
                   </>
                 ) : contentDownloaded.shows ? (
-                  'Concluído'
+                  'Re-download Series'
                 ) : (
-                  'Baixar Séries'
+                  'Download Series'
                 )}
               </Button>
             </CardContent>
@@ -266,12 +253,12 @@ export function DownloadSection() {
 
         <div className='text-muted-foreground text-center text-sm'>
           <p>
-            O download pode levar alguns minutos dependendo da quantidade de
-            conteúdo.
+            Download may take several minutes depending on the amount of
+            content.
           </p>
           <p>
-            Você pode usar o aplicativo normalmente enquanto o download acontece
-            em segundo plano.
+            You can use the app normally while download happens in the
+            background.
           </p>
         </div>
       </CardContent>

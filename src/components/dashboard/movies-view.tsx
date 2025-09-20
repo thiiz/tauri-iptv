@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
@@ -13,11 +12,13 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { iptvDataService } from '@/lib/iptv-data-service';
 import { useIPTVStore } from '@/lib/store';
 import type { Movie } from '@/types/iptv';
 import { Film, Grid3X3, List, Play, Search, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export function MoviesView() {
   const {
@@ -48,7 +49,7 @@ export function MoviesView() {
         await loadMovieCategories();
         await loadMovies(selectedCategory || undefined);
       } catch (error) {
-        console.error('Failed to load data:', error);
+        toast.error('Failed to load movies. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -83,10 +84,10 @@ export function MoviesView() {
         watchedAt: new Date().toISOString()
       });
 
-      alert(`Reproduzindo: ${movie.name}\nURL: ${streamUrl}`);
+      toast.success(`Playing: ${movie.name}`);
+      // Note: Stream URL could be opened in a new tab or player here
     } catch (error) {
-      console.error('Failed to play movie:', error);
-      alert('Erro ao reproduzir filme');
+      toast.error('Failed to play movie. Please try again.');
     }
   };
 
@@ -117,9 +118,9 @@ export function MoviesView() {
       <div className='border-b p-6'>
         <div className='flex items-center justify-between'>
           <div>
-            <h1 className='text-3xl font-bold tracking-tight'>Filmes</h1>
+            <h1 className='text-3xl font-bold tracking-tight'>Movies</h1>
             <p className='text-muted-foreground'>
-              {filteredMovies.length} filmes disponíveis
+              {filteredMovies.length} movies available
             </p>
           </div>
 
@@ -145,7 +146,7 @@ export function MoviesView() {
           <div className='relative max-w-sm flex-1'>
             <Search className='text-muted-foreground absolute top-2.5 left-2 h-4 w-4' />
             <Input
-              placeholder='Buscar filmes...'
+              placeholder='Search movies...'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className='pl-8'
@@ -162,7 +163,7 @@ export function MoviesView() {
               <SelectValue placeholder='Categoria' />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value='all'>Todas as categorias</SelectItem>
+              <SelectItem value='all'>All categories</SelectItem>
               {movieCategories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
@@ -176,21 +177,47 @@ export function MoviesView() {
       <ScrollArea className='flex-1'>
         <div className='p-6'>
           {isLoading ? (
-            <div className='flex items-center justify-center py-12'>
-              <LoadingSpinner size='lg' />
+            <div
+              className={
+                viewMode === 'grid'
+                  ? 'grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                  : 'space-y-2'
+              }
+            >
+              {Array.from({ length: 10 }).map((_, i) => (
+                <Card
+                  key={i}
+                  className='group cursor-pointer transition-all hover:shadow-md'
+                >
+                  <CardContent className='p-4'>
+                    <div className='mb-3'>
+                      <Skeleton className='h-32 w-full rounded object-cover' />
+                    </div>
+                    <div className='text-center'>
+                      <Skeleton className='mx-auto mb-1 h-4 w-3/4' />
+                      <div className='mb-3 flex items-center justify-center gap-2'>
+                        <Skeleton className='h-3 w-8' />
+                        <Skeleton className='h-3 w-12' />
+                      </div>
+                    </div>
+                    <div className='flex gap-2'>
+                      <Skeleton className='h-8 flex-1' />
+                      <Skeleton className='h-8 w-8' />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           ) : filteredMovies.length === 0 ? (
             <div className='py-12 text-center'>
               <Film className='text-muted-foreground mx-auto mb-4 h-12 w-12' />
               <h3 className='mb-2 text-lg font-semibold'>
-                {searchQuery
-                  ? 'Nenhum filme encontrado'
-                  : 'Nenhum filme disponível'}
+                {searchQuery ? 'No movies found' : 'No movies available'}
               </h3>
               <p className='text-muted-foreground'>
                 {searchQuery
-                  ? 'Tente ajustar sua busca'
-                  : 'Faça o download do conteúdo na página inicial para visualizar os filmes'}
+                  ? 'Try adjusting your search'
+                  : 'Download content from the home page to view movies'}
               </p>
             </div>
           ) : (
@@ -246,7 +273,7 @@ export function MoviesView() {
                         className='flex-1'
                       >
                         <Play className='mr-1 h-4 w-4' />
-                        Assistir
+                        Watch
                       </Button>
 
                       <Button
