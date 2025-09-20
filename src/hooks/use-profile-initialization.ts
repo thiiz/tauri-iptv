@@ -7,8 +7,6 @@ export function useProfileInitialization() {
   const {
     profiles,
     loadProfiles,
-    loadFavorites,
-    loadWatchHistory,
     loadSettings,
     currentProfileId,
     setCurrentProfile,
@@ -19,12 +17,7 @@ export function useProfileInitialization() {
     const initializeApp = async () => {
       try {
         // Load all data from IndexedDB
-        await Promise.all([
-          loadProfiles(),
-          loadFavorites(),
-          loadWatchHistory(),
-          loadSettings()
-        ]);
+        await Promise.all([loadProfiles(), loadSettings()]);
 
         // If we have profiles but no current profile, and there's an active one, set it
         if (profiles.length > 0 && !currentProfileId) {
@@ -47,8 +40,6 @@ export function useProfileInitialization() {
   }, [
     profiles.length,
     loadProfiles,
-    loadFavorites,
-    loadWatchHistory,
     loadSettings,
     currentProfileId,
     setCurrentProfile,

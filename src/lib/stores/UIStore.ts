@@ -2,14 +2,7 @@ import { create } from 'zustand';
 
 interface UIStore {
   // UI State
-  currentView:
-    | 'dashboard'
-    | 'channels'
-    | 'movies'
-    | 'shows'
-    | 'favorites'
-    | 'history'
-    | 'settings';
+  currentView: 'dashboard' | 'channels' | 'movies' | 'shows' | 'settings';
   selectedCategory: string | null;
   isLoading: boolean;
   error: string | null;
@@ -25,14 +18,7 @@ interface UIStore {
 
   // Actions
   setCurrentView: (
-    view:
-      | 'dashboard'
-      | 'channels'
-      | 'movies'
-      | 'shows'
-      | 'favorites'
-      | 'history'
-      | 'settings'
+    view: 'dashboard' | 'channels' | 'movies' | 'shows' | 'settings'
   ) => void;
   setSelectedCategory: (categoryId: string | null) => void;
   setLoading: (loading: boolean) => void;

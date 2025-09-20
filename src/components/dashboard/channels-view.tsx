@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { iptvDataService } from '@/lib/iptv-data-service';
 import { useIPTVStore } from '@/lib/store';
 import type { Channel } from '@/types/iptv';
-import { Clock, Grid3X3, List, Play, Search, Star, Tv } from 'lucide-react';
+import { Clock, Grid3X3, List, Play, Search, Tv } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -29,10 +29,6 @@ export function ChannelsView() {
     fetchChannels,
     selectedCategory,
     setSelectedCategory,
-    favorites,
-    addFavorite,
-    removeFavorite,
-    addToHistory,
     contentDownloaded
   } = useIPTVStore();
 
@@ -78,45 +74,12 @@ export function ChannelsView() {
         extension: 'm3u8'
       });
 
-      // Add to history
-      addToHistory({
-        id: channel.id,
-        type: 'channel',
-        name: channel.name,
-        streamIcon: channel.streamIcon,
-        watchedAt: new Date().toISOString()
-      });
-
       // Open stream (in a real app, this would open in a video player)
       toast.success(`Playing: ${channel.name}`);
       // Note: Stream URL could be opened in a new tab or player here
     } catch (error) {
       toast.error('Failed to play channel. Please try again.');
     }
-  };
-
-  const handleToggleFavorite = (channel: Channel) => {
-    const isFavorite = favorites.some(
-      (fav) => fav.id === channel.id && fav.type === 'channel'
-    );
-
-    if (isFavorite) {
-      removeFavorite(channel.id);
-    } else {
-      addFavorite({
-        id: channel.id,
-        type: 'channel',
-        name: channel.name,
-        streamIcon: channel.streamIcon,
-        addedAt: new Date().toISOString()
-      });
-    }
-  };
-
-  const isFavorite = (channelId: string) => {
-    return favorites.some(
-      (fav) => fav.id === channelId && fav.type === 'channel'
-    );
   };
 
   return (
@@ -333,21 +296,6 @@ export function ChannelsView() {
                       >
                         <Play className='mr-1 h-4 w-4' />
                         {viewMode === 'grid' ? '' : 'Watch'}
-                      </Button>
-
-                      <Button
-                        size='sm'
-                        variant='outline'
-                        onClick={() => handleToggleFavorite(channel)}
-                        className={
-                          isFavorite(channel.id) ? 'text-yellow-600' : ''
-                        }
-                      >
-                        {isFavorite(channel.id) ? (
-                          <Star className='h-4 w-4 fill-current' />
-                        ) : (
-                          <Star className='h-4 w-4' />
-                        )}
                       </Button>
                     </div>
                   </CardContent>

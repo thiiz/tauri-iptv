@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { iptvDataService } from '@/lib/iptv-data-service';
 import { useIPTVStore } from '@/lib/store';
 import type { Movie } from '@/types/iptv';
-import { Film, Grid3X3, List, Play, Search, Star } from 'lucide-react';
+import { Film, Grid3X3, List, Play, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -29,10 +29,6 @@ export function MoviesView() {
     fetchMovies,
     selectedCategory,
     setSelectedCategory,
-    favorites,
-    addFavorite,
-    removeFavorite,
-    addToHistory,
     contentDownloaded
   } = useIPTVStore();
 
@@ -76,41 +72,11 @@ export function MoviesView() {
         extension: movie.containerExtension || 'mp4'
       });
 
-      addToHistory({
-        id: movie.id,
-        type: 'movie',
-        name: movie.name,
-        streamIcon: movie.streamIcon,
-        watchedAt: new Date().toISOString()
-      });
-
       toast.success(`Playing: ${movie.name}`);
       // Note: Stream URL could be opened in a new tab or player here
     } catch (error) {
       toast.error('Failed to play movie. Please try again.');
     }
-  };
-
-  const handleToggleFavorite = (movie: Movie) => {
-    const isFavorite = favorites.some(
-      (fav) => fav.id === movie.id && fav.type === 'movie'
-    );
-
-    if (isFavorite) {
-      removeFavorite(movie.id);
-    } else {
-      addFavorite({
-        id: movie.id,
-        type: 'movie',
-        name: movie.name,
-        streamIcon: movie.streamIcon,
-        addedAt: new Date().toISOString()
-      });
-    }
-  };
-
-  const isFavorite = (movieId: string) => {
-    return favorites.some((fav) => fav.id === movieId && fav.type === 'movie');
   };
 
   return (
@@ -274,21 +240,6 @@ export function MoviesView() {
                       >
                         <Play className='mr-1 h-4 w-4' />
                         Watch
-                      </Button>
-
-                      <Button
-                        size='sm'
-                        variant='outline'
-                        onClick={() => handleToggleFavorite(movie)}
-                        className={
-                          isFavorite(movie.id) ? 'text-yellow-600' : ''
-                        }
-                      >
-                        {isFavorite(movie.id) ? (
-                          <Star className='h-4 w-4 fill-current' />
-                        ) : (
-                          <Star className='h-4 w-4' />
-                        )}
                       </Button>
                     </div>
                   </CardContent>

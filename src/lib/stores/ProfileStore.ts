@@ -1,10 +1,8 @@
 import type {
   AppSettings,
-  FavoriteItem,
   ProfileAccount,
   ServerInfo,
   UserProfile,
-  WatchHistory,
   XtreamConfig
 } from '@/types/iptv';
 import { create } from 'zustand';
@@ -26,8 +24,6 @@ interface ProfileStore {
   serverInfo: ServerInfo | null;
 
   // User Data
-  favorites: FavoriteItem[];
-  watchHistory: WatchHistory[];
   settings: AppSettings;
 
   // Actions
@@ -44,16 +40,11 @@ interface ProfileStore {
   setAuthenticated: (authenticated: boolean) => void;
   setUserProfile: (profile: UserProfile) => Promise<void>;
   setServerInfo: (info: ServerInfo) => Promise<void>;
-  addFavorite: (item: FavoriteItem) => Promise<void>;
-  removeFavorite: (id: string) => Promise<void>;
-  addToHistory: (item: WatchHistory) => Promise<void>;
   updateSettings: (settings: Partial<AppSettings>) => Promise<void>;
   clearData: () => Promise<void>;
 
   // Async data loading actions
   loadProfiles: () => Promise<void>;
-  loadFavorites: () => Promise<void>;
-  loadWatchHistory: () => Promise<void>;
   loadSettings: () => Promise<void>;
 
   // Async API fetching actions
@@ -69,8 +60,6 @@ export const useProfileStore = create<ProfileStore>()((set, get) => ({
   isAuthenticated: false,
   userProfile: null,
   serverInfo: null,
-  favorites: [],
-  watchHistory: [],
   settings: {
     theme: 'system',
     autoplay: false,
@@ -181,50 +170,6 @@ export const useProfileStore = create<ProfileStore>()((set, get) => ({
     }
   },
 
-  addFavorite: async (item) => {
-    const { favorites, currentProfileId } = get();
-    if (!currentProfileId) return;
-    if (
-      !favorites.find((fav) => fav.id === item.id && fav.type === item.type)
-    ) {
-      const newFavorites = [...favorites, item];
-      set({ favorites: newFavorites });
-      await indexedDBService.addFavorite(item, currentProfileId);
-    }
-  },
-
-  removeFavorite: async (id) => {
-    const { favorites, currentProfileId } = get();
-    if (!currentProfileId) return;
-    const newFavorites = favorites.filter((fav) => fav.id !== id);
-    set({ favorites: newFavorites });
-    await indexedDBService.removeFavorite(id, currentProfileId);
-  },
-
-  addToHistory: async (item) => {
-    const { watchHistory, currentProfileId } = get();
-    if (!currentProfileId) return;
-    const existingIndex = watchHistory.findIndex(
-      (h) => h.id === item.id && h.type === item.type
-    );
-
-    if (existingIndex >= 0) {
-      // Update existing entry
-      const updated = [...watchHistory];
-      updated[existingIndex] = {
-        ...updated[existingIndex],
-        watchedAt: item.watchedAt
-      };
-      set({ watchHistory: updated });
-    } else {
-      // Add new entry (keep only last 100 items)
-      const updated = [item, ...watchHistory].slice(0, 100);
-      set({ watchHistory: updated });
-    }
-
-    await indexedDBService.addToHistory(item, currentProfileId);
-  },
-
   updateSettings: async (newSettings) => {
     const { settings } = get();
     const updatedSettings = { ...settings, ...newSettings };
@@ -262,29 +207,6 @@ export const useProfileStore = create<ProfileStore>()((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to load profiles:', error);
-    }
-  },
-
-  loadFavorites: async () => {
-    try {
-      const { currentProfileId } = get();
-      if (!currentProfileId) return;
-      const favorites = await indexedDBService.getFavorites(currentProfileId);
-      set({ favorites });
-    } catch (error) {
-      console.error('Failed to load favorites:', error);
-    }
-  },
-
-  loadWatchHistory: async () => {
-    try {
-      const { currentProfileId } = get();
-      if (!currentProfileId) return;
-      const watchHistory =
-        await indexedDBService.getWatchHistory(currentProfileId);
-      set({ watchHistory });
-    } catch (error) {
-      console.error('Failed to load watch history:', error);
     }
   },
 

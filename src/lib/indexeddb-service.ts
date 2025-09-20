@@ -3,11 +3,9 @@ import type {
   Category,
   Channel,
   Episode,
-  FavoriteItem,
   Movie,
   ProfileAccount,
-  Show,
-  WatchHistory
+  Show
 } from '@/types/iptv';
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
 
@@ -41,20 +39,6 @@ interface IPTVDBSchema extends DBSchema {
     key: string;
     value: Episode & { profileId: string; showId: string };
     indexes: { 'by-showId': string; 'by-profile': string };
-  };
-  favorites: {
-    key: string;
-    value: FavoriteItem & { profileId: string };
-    indexes: { 'by-type': 'channel' | 'movie' | 'show'; 'by-profile': string };
-  };
-  watchHistory: {
-    key: string;
-    value: WatchHistory & { profileId: string };
-    indexes: {
-      'by-type': 'channel' | 'movie' | 'episode';
-      'by-watchedAt': string;
-      'by-profile': string;
-    };
   };
   settings: {
     key: string;
@@ -90,8 +74,6 @@ export class IndexedDBService {
             'movies',
             'shows',
             'episodes',
-            'favorites',
-            'watchHistory',
             'settings'
           ];
           storeNames.forEach((storeName) => {
@@ -148,25 +130,6 @@ export class IndexedDBService {
           });
           episodesStore.createIndex('by-showId', 'showId');
           episodesStore.createIndex('by-profile', 'profileId');
-        }
-
-        // Favorites store
-        if (!db.objectStoreNames.contains('favorites')) {
-          const favoritesStore = db.createObjectStore('favorites', {
-            keyPath: 'id'
-          });
-          favoritesStore.createIndex('by-type', 'type');
-          favoritesStore.createIndex('by-profile', 'profileId');
-        }
-
-        // Watch History store
-        if (!db.objectStoreNames.contains('watchHistory')) {
-          const watchHistoryStore = db.createObjectStore('watchHistory', {
-            keyPath: 'id'
-          });
-          watchHistoryStore.createIndex('by-type', 'type');
-          watchHistoryStore.createIndex('by-watchedAt', 'watchedAt');
-          watchHistoryStore.createIndex('by-profile', 'profileId');
         }
 
         // Settings store
@@ -443,107 +406,7 @@ export class IndexedDBService {
     );
   }
 
-  // Favorites methods
-  async addFavorite(item: FavoriteItem, profileId: string): Promise<void> {
-    const db = await this.ensureDB();
-    if (!db) return;
-    const favoriteWithProfile = { ...item, profileId };
-    await db.put('favorites', favoriteWithProfile);
-  }
-
-  async removeFavorite(id: string, profileId: string): Promise<void> {
-    const db = await this.ensureDB();
-    if (!db) return;
-    // Find the favorite item for this profile
-    const favorites = await db.getAllFromIndex(
-      'favorites',
-      'by-profile',
-      profileId
-    );
-    const favorite = favorites.find((f) => f.id === id);
-    if (favorite) {
-      await db.delete('favorites', favorite.id);
-    }
-  }
-
-  async getFavorites(
-    profileId: string,
-    type?: 'channel' | 'movie' | 'show'
-  ): Promise<FavoriteItem[]> {
-    const db = await this.ensureDB();
-    if (!db) return [];
-    let favorites: (FavoriteItem & { profileId: string })[];
-    if (type) {
-      favorites = await db.getAllFromIndex('favorites', 'by-type', type);
-    } else {
-      favorites = await db.getAll('favorites');
-    }
-    // Filter by profile
-    const profileFavorites = favorites.filter((f) => f.profileId === profileId);
-    // Remove profileId from returned items
-    return profileFavorites.map(({ profileId: _, ...fav }) => fav);
-  }
-
-  async isFavorite(id: string): Promise<boolean> {
-    const db = await this.ensureDB();
-    if (!db) return false;
-    const item = await db.get('favorites', id);
-    return !!item;
-  }
-
   // Watch History methods
-  async addToHistory(item: WatchHistory, profileId: string): Promise<void> {
-    const db = await this.ensureDB();
-    if (!db) return;
-    const historyWithProfile = { ...item, profileId };
-    await db.put('watchHistory', historyWithProfile);
-  }
-
-  async getWatchHistory(
-    profileId: string,
-    type?: 'channel' | 'movie' | 'episode',
-    limit = 100
-  ): Promise<WatchHistory[]> {
-    const db = await this.ensureDB();
-    if (!db) return [];
-    let history: (WatchHistory & { profileId: string })[];
-
-    if (type) {
-      history = await db.getAllFromIndex('watchHistory', 'by-type', type);
-    } else {
-      history = await db.getAll('watchHistory');
-    }
-
-    // Filter by profile
-    const profileHistory = history.filter((h) => h.profileId === profileId);
-
-    // Sort by watchedAt descending and limit
-    const sortedHistory = profileHistory
-      .sort(
-        (a, b) =>
-          new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime()
-      )
-      .slice(0, limit);
-
-    // Remove profileId from returned items
-    return sortedHistory.map(({ profileId: _, ...h }) => h);
-  }
-
-  async clearWatchHistory(profileId: string): Promise<void> {
-    const db = await this.ensureDB();
-    if (!db) return;
-    // Get all history items for this profile and delete them
-    const historyItems = await db.getAllFromIndex(
-      'watchHistory',
-      'by-profile',
-      profileId
-    );
-    const tx = db.transaction('watchHistory', 'readwrite');
-    for (const item of historyItems) {
-      await tx.store.delete(item.id);
-    }
-    await tx.done;
-  }
 
   // Settings methods
   async saveSettings(settings: AppSettings): Promise<void> {
@@ -567,7 +430,7 @@ export class IndexedDBService {
     const db = await this.ensureDB();
     if (!db) return;
     const tx = db.transaction(
-      ['channels', 'movies', 'shows', 'episodes', 'favorites', 'watchHistory'],
+      ['channels', 'movies', 'shows', 'episodes'],
       'readwrite'
     );
 
@@ -575,9 +438,7 @@ export class IndexedDBService {
       tx.objectStore('channels').clear(),
       tx.objectStore('movies').clear(),
       tx.objectStore('shows').clear(),
-      tx.objectStore('episodes').clear(),
-      tx.objectStore('favorites').clear(),
-      tx.objectStore('watchHistory').clear()
+      tx.objectStore('episodes').clear()
     ]);
 
     await tx.done;

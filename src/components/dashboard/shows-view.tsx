@@ -15,7 +15,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIPTVStore } from '@/lib/store';
 import type { Show } from '@/types/iptv';
-import { Grid3X3, List, MonitorPlay, Play, Search, Star } from 'lucide-react';
+import { Grid3X3, List, MonitorPlay, Play, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -30,9 +30,6 @@ export function ShowsView() {
     fetchShows,
     selectedCategory,
     setSelectedCategory,
-    favorites,
-    addFavorite,
-    removeFavorite,
     contentDownloaded
   } = useIPTVStore();
 
@@ -71,28 +68,6 @@ export function ShowsView() {
   const handleViewShow = (show: Show) => {
     // Navigate to series details page
     router.push(`/dashboard/series/${show.id}`);
-  };
-
-  const handleToggleFavorite = (show: Show) => {
-    const isFavorite = favorites.some(
-      (fav) => fav.id === show.id && fav.type === 'show'
-    );
-
-    if (isFavorite) {
-      removeFavorite(show.id);
-    } else {
-      addFavorite({
-        id: show.id,
-        type: 'show',
-        name: show.name,
-        streamIcon: show.streamIcon,
-        addedAt: new Date().toISOString()
-      });
-    }
-  };
-
-  const isFavorite = (showId: string) => {
-    return favorites.some((fav) => fav.id === showId && fav.type === 'show');
   };
 
   return (
@@ -256,19 +231,6 @@ export function ShowsView() {
                       >
                         <Play className='mr-1 h-4 w-4' />
                         View Series
-                      </Button>
-
-                      <Button
-                        size='sm'
-                        variant='outline'
-                        onClick={() => handleToggleFavorite(show)}
-                        className={isFavorite(show.id) ? 'text-yellow-600' : ''}
-                      >
-                        {isFavorite(show.id) ? (
-                          <Star className='h-4 w-4 fill-current' />
-                        ) : (
-                          <Star className='h-4 w-4' />
-                        )}
                       </Button>
                     </div>
                   </CardContent>

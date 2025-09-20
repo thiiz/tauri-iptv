@@ -163,23 +163,3 @@ export interface AppSettings {
   enableNotifications: boolean;
   cacheSize: number;
 }
-
-export interface FavoriteItem {
-  id: string;
-  type: 'channel' | 'movie' | 'show';
-  name: string;
-  streamIcon?: string;
-  addedAt: string;
-  profileId?: string;
-}
-
-export interface WatchHistory {
-  id: string;
-  type: 'channel' | 'movie' | 'episode';
-  name: string;
-  streamIcon?: string;
-  watchedAt: string;
-  duration?: number;
-  position?: number;
-  profileId?: string;
-}

@@ -2,13 +2,11 @@ import type {
   AppSettings,
   Category,
   Channel,
-  FavoriteItem,
   Movie,
   ProfileAccount,
   ServerInfo,
   Show,
   UserProfile,
-  WatchHistory,
   XtreamConfig
 } from '@/types/iptv';
 import { create } from 'zustand';
@@ -40,14 +38,7 @@ interface IPTVStore {
   shows: Show[];
 
   // UI State
-  currentView:
-    | 'dashboard'
-    | 'channels'
-    | 'movies'
-    | 'shows'
-    | 'favorites'
-    | 'history'
-    | 'settings';
+  currentView: 'dashboard' | 'channels' | 'movies' | 'shows' | 'settings';
   selectedCategory: string | null;
   isLoading: boolean;
   error: string | null;
@@ -74,8 +65,6 @@ interface IPTVStore {
   isPlaying: boolean;
 
   // User Data
-  favorites: FavoriteItem[];
-  watchHistory: WatchHistory[];
   settings: AppSettings;
 
   // Actions
@@ -99,30 +88,18 @@ interface IPTVStore {
   setMovies: (movies: Movie[]) => Promise<void>;
   setShows: (shows: Show[]) => Promise<void>;
   setCurrentView: (
-    view:
-      | 'dashboard'
-      | 'channels'
-      | 'movies'
-      | 'shows'
-      | 'favorites'
-      | 'history'
-      | 'settings'
+    view: 'dashboard' | 'channels' | 'movies' | 'shows' | 'settings'
   ) => void;
   setSelectedCategory: (categoryId: string | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setCurrentStream: (stream: IPTVStore['currentStream']) => void;
   setPlaying: (playing: boolean) => void;
-  addFavorite: (item: FavoriteItem) => Promise<void>;
-  removeFavorite: (id: string) => Promise<void>;
-  addToHistory: (item: WatchHistory) => Promise<void>;
   updateSettings: (settings: Partial<AppSettings>) => Promise<void>;
   clearData: () => Promise<void>;
 
   // Async data loading actions
   loadProfiles: () => Promise<void>;
-  loadFavorites: () => Promise<void>;
-  loadWatchHistory: () => Promise<void>;
   loadSettings: () => Promise<void>;
   loadChannelCategories: () => Promise<void>;
   loadMovieCategories: () => Promise<void>;
@@ -158,30 +135,17 @@ interface IPTVStore {
   checkContentDownloaded: () => Promise<void>;
 }
 
-export const useIPTVStore = create<IPTVStore>()((set, get) => ({
-  // Initial state
+// Profile Slice
+const profileSlice = (set: any, get: any) => ({
+  // Profile state
   profiles: [],
   currentProfileId: null,
   config: null,
   isAuthenticated: false,
   userProfile: null,
   serverInfo: null,
-  channelCategories: [],
-  movieCategories: [],
-  showCategories: [],
-  channels: [],
-  movies: [],
-  shows: [],
-  currentView: 'dashboard',
-  selectedCategory: null,
-  isLoading: false,
-  error: null,
-  currentStream: null,
-  isPlaying: false,
-  favorites: [],
-  watchHistory: [],
   settings: {
-    theme: 'system',
+    theme: 'system' as const,
     autoplay: false,
     defaultQuality: 'm3u8',
     alwaysOnTop: false,
@@ -190,49 +154,45 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
     enableNotifications: true,
     cacheSize: 500
   },
-  downloadProgress: {
-    channels: { isDownloading: false, progress: 0, total: 0 },
-    movies: { isDownloading: false, progress: 0, total: 0 },
-    shows: { isDownloading: false, progress: 0, total: 0 }
-  },
-  contentDownloaded: {
-    channels: false,
-    movies: false,
-    shows: false
-  },
 
-  // Actions
-  setProfiles: async (profiles) => {
+  // Profile actions
+  setProfiles: async (profiles: ProfileAccount[]) => {
     set({ profiles });
-    // Save to IndexedDB
     for (const profile of profiles) {
       await profileServiceIndexedDB.saveProfile(profile);
     }
   },
 
-  addProfile: async (profile) => {
+  addProfile: async (profile: ProfileAccount) => {
     const { profiles } = get();
     const newProfiles = [...profiles, profile];
     set({ profiles: newProfiles });
     await profileServiceIndexedDB.saveProfile(profile);
   },
 
-  updateProfile: async (profileId, updates) => {
+  updateProfile: async (
+    profileId: string,
+    updates: Partial<ProfileAccount>
+  ) => {
     const { profiles } = get();
-    const updatedProfiles = profiles.map((p) =>
+    const updatedProfiles = profiles.map((p: ProfileAccount) =>
       p.id === profileId ? { ...p, ...updates } : p
     );
     set({ profiles: updatedProfiles });
 
-    const updatedProfile = updatedProfiles.find((p) => p.id === profileId);
+    const updatedProfile = updatedProfiles.find(
+      (p: ProfileAccount) => p.id === profileId
+    );
     if (updatedProfile) {
       await profileServiceIndexedDB.saveProfile(updatedProfile);
     }
   },
 
-  deleteProfile: async (profileId) => {
+  deleteProfile: async (profileId: string) => {
     const { profiles, currentProfileId } = get();
-    const updatedProfiles = profiles.filter((p) => p.id !== profileId);
+    const updatedProfiles = profiles.filter(
+      (p: ProfileAccount) => p.id !== profileId
+    );
     const newCurrentProfileId =
       currentProfileId === profileId ? null : currentProfileId;
 
@@ -246,8 +206,8 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
     await profileServiceIndexedDB.deleteProfile(profileId);
   },
 
-  setCurrentProfile: async (profileId) => {
-    if (!profileId) return undefined;
+  setCurrentProfile: async (profileId: string | null) => {
+    if (!profileId) return;
     const profile = await profileServiceIndexedDB.getProfile(profileId);
     if (profile) {
       await profileServiceIndexedDB.setActiveProfile(profileId);
@@ -261,7 +221,6 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
         serverInfo: profile.serverInfo || null
       });
 
-      // Update last used
       await profileServiceIndexedDB.updateProfileLastUsed(profileId);
     }
   },
@@ -274,9 +233,10 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
     return null;
   },
 
-  setConfig: (config) => set({ config }),
-  setAuthenticated: (authenticated) => set({ isAuthenticated: authenticated }),
-  setUserProfile: async (profile) => {
+  setConfig: (config: XtreamConfig) => set({ config }),
+  setAuthenticated: (authenticated: boolean) =>
+    set({ isAuthenticated: authenticated }),
+  setUserProfile: async (profile: UserProfile) => {
     set({ userProfile: profile });
     const { currentProfileId } = get();
     if (currentProfileId) {
@@ -288,7 +248,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
     }
   },
 
-  setServerInfo: async (info) => {
+  setServerInfo: async (info: ServerInfo) => {
     set({ serverInfo: info });
     const { currentProfileId } = get();
     if (currentProfileId) {
@@ -300,117 +260,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
     }
   },
 
-  setChannelCategories: async (categories) => {
-    set({ channelCategories: categories });
-    const { currentProfileId } = get();
-    if (currentProfileId) {
-      await indexedDBService.saveCategories(
-        'channel',
-        categories,
-        currentProfileId
-      );
-    }
-  },
-
-  setMovieCategories: async (categories) => {
-    set({ movieCategories: categories });
-    const { currentProfileId } = get();
-    if (currentProfileId) {
-      await indexedDBService.saveCategories(
-        'movie',
-        categories,
-        currentProfileId
-      );
-    }
-  },
-
-  setShowCategories: async (categories) => {
-    set({ showCategories: categories });
-    const { currentProfileId } = get();
-    if (currentProfileId) {
-      await indexedDBService.saveCategories(
-        'show',
-        categories,
-        currentProfileId
-      );
-    }
-  },
-
-  setChannels: async (channels) => {
-    set({ channels });
-    const { currentProfileId } = get();
-    if (currentProfileId) {
-      await indexedDBService.saveChannels(channels, currentProfileId);
-    }
-  },
-
-  setMovies: async (movies) => {
-    set({ movies });
-    const { currentProfileId } = get();
-    if (currentProfileId) {
-      await indexedDBService.saveMovies(movies, currentProfileId);
-    }
-  },
-
-  setShows: async (shows) => {
-    set({ shows });
-    const { currentProfileId } = get();
-    if (currentProfileId) {
-      await indexedDBService.saveShows(shows, currentProfileId);
-    }
-  },
-  setCurrentView: (view) => set({ currentView: view }),
-  setSelectedCategory: (categoryId) => set({ selectedCategory: categoryId }),
-  setLoading: (loading) => set({ isLoading: loading }),
-  setError: (error) => set({ error }),
-  setCurrentStream: (stream) => set({ currentStream: stream }),
-  setPlaying: (playing) => set({ isPlaying: playing }),
-
-  addFavorite: async (item) => {
-    const { favorites, currentProfileId } = get();
-    if (!currentProfileId) return;
-    if (
-      !favorites.find((fav) => fav.id === item.id && fav.type === item.type)
-    ) {
-      const newFavorites = [...favorites, item];
-      set({ favorites: newFavorites });
-      await indexedDBService.addFavorite(item, currentProfileId);
-    }
-  },
-
-  removeFavorite: async (id) => {
-    const { favorites, currentProfileId } = get();
-    if (!currentProfileId) return;
-    const newFavorites = favorites.filter((fav) => fav.id !== id);
-    set({ favorites: newFavorites });
-    await indexedDBService.removeFavorite(id, currentProfileId);
-  },
-
-  addToHistory: async (item) => {
-    const { watchHistory, currentProfileId } = get();
-    if (!currentProfileId) return;
-    const existingIndex = watchHistory.findIndex(
-      (h) => h.id === item.id && h.type === item.type
-    );
-
-    if (existingIndex >= 0) {
-      // Update existing entry
-      const updated = [...watchHistory];
-      updated[existingIndex] = {
-        ...updated[existingIndex],
-        watchedAt: item.watchedAt
-      };
-      set({ watchHistory: updated });
-    } else {
-      // Add new entry (keep only last 100 items)
-      const updated = [item, ...watchHistory].slice(0, 100);
-      set({ watchHistory: updated });
-    }
-
-    await indexedDBService.addToHistory(item, currentProfileId);
-  },
-
-  updateSettings: async (newSettings) => {
+  updateSettings: async (newSettings: Partial<AppSettings>) => {
     const { settings } = get();
     const updatedSettings = { ...settings, ...newSettings };
     set({ settings: updatedSettings });
@@ -423,16 +273,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
       config: null,
       isAuthenticated: false,
       userProfile: null,
-      serverInfo: null,
-      channelCategories: [],
-      movieCategories: [],
-      showCategories: [],
-      channels: [],
-      movies: [],
-      shows: [],
-      currentStream: null,
-      isPlaying: false,
-      error: null
+      serverInfo: null
     });
     await indexedDBService.clearAllData();
   },
@@ -444,7 +285,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
       set({ profiles });
 
       // Set active profile if exists
-      const activeProfile = profiles.find((p) => p.isActive);
+      const activeProfile = profiles.find((p: ProfileAccount) => p.isActive);
       if (activeProfile) {
         set({
           currentProfileId: activeProfile.id,
@@ -459,29 +300,6 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
     }
   },
 
-  loadFavorites: async () => {
-    try {
-      const { currentProfileId } = get();
-      if (!currentProfileId) return;
-      const favorites = await indexedDBService.getFavorites(currentProfileId);
-      set({ favorites });
-    } catch (error) {
-      console.error('Failed to load favorites:', error);
-    }
-  },
-
-  loadWatchHistory: async () => {
-    try {
-      const { currentProfileId } = get();
-      if (!currentProfileId) return;
-      const watchHistory =
-        await indexedDBService.getWatchHistory(currentProfileId);
-      set({ watchHistory });
-    } catch (error) {
-      console.error('Failed to load watch history:', error);
-    }
-  },
-
   loadSettings: async () => {
     try {
       const settings = await indexedDBService.getSettings();
@@ -490,6 +308,99 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
+    }
+  },
+
+  // Async actions for fetching from API
+  fetchUserProfile: async (forceRefresh = false) => {
+    try {
+      const userProfile = await iptvDataService.getUserProfile(forceRefresh);
+      set({ userProfile });
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+      throw error;
+    }
+  },
+
+  fetchServerInfo: async (forceRefresh = false) => {
+    try {
+      const serverInfo = await iptvDataService.getServerInfo(forceRefresh);
+      set({ serverInfo });
+    } catch (error) {
+      console.error('Failed to fetch server info:', error);
+      throw error;
+    }
+  }
+});
+
+// Content Slice
+const contentSlice = (set: any, get: any) => ({
+  // Content state
+  channelCategories: [],
+  movieCategories: [],
+  showCategories: [],
+  channels: [],
+  movies: [],
+  shows: [],
+
+  // Content actions
+  setChannelCategories: async (categories: Category[]) => {
+    set({ channelCategories: categories });
+    const { currentProfileId } = get();
+    if (currentProfileId) {
+      await indexedDBService.saveCategories(
+        'channel',
+        categories,
+        currentProfileId
+      );
+    }
+  },
+
+  setMovieCategories: async (categories: Category[]) => {
+    set({ movieCategories: categories });
+    const { currentProfileId } = get();
+    if (currentProfileId) {
+      await indexedDBService.saveCategories(
+        'movie',
+        categories,
+        currentProfileId
+      );
+    }
+  },
+
+  setShowCategories: async (categories: Category[]) => {
+    set({ showCategories: categories });
+    const { currentProfileId } = get();
+    if (currentProfileId) {
+      await indexedDBService.saveCategories(
+        'show',
+        categories,
+        currentProfileId
+      );
+    }
+  },
+
+  setChannels: async (channels: Channel[]) => {
+    set({ channels });
+    const { currentProfileId } = get();
+    if (currentProfileId) {
+      await indexedDBService.saveChannels(channels, currentProfileId);
+    }
+  },
+
+  setMovies: async (movies: Movie[]) => {
+    set({ movies });
+    const { currentProfileId } = get();
+    if (currentProfileId) {
+      await indexedDBService.saveMovies(movies, currentProfileId);
+    }
+  },
+
+  setShows: async (shows: Show[]) => {
+    set({ shows });
+    const { currentProfileId } = get();
+    if (currentProfileId) {
+      await indexedDBService.saveShows(shows, currentProfileId);
     }
   },
 
@@ -684,38 +595,43 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
         isLoading: false
       });
     }
-  },
+  }
+});
 
-  fetchUserProfile: async (forceRefresh = false) => {
-    try {
-      set({ isLoading: true, error: null });
-      const userProfile = await iptvDataService.getUserProfile(forceRefresh);
-      set({ userProfile, isLoading: false });
-    } catch (error) {
-      set({
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch user profile',
-        isLoading: false
-      });
-    }
-  },
+// UI Slice
+const uiSlice = (set: any) => ({
+  // UI state
+  currentView: 'dashboard' as const,
+  selectedCategory: null,
+  isLoading: false,
+  error: null,
+  currentStream: null,
+  isPlaying: false,
 
-  fetchServerInfo: async (forceRefresh = false) => {
-    try {
-      set({ isLoading: true, error: null });
-      const serverInfo = await iptvDataService.getServerInfo(forceRefresh);
-      set({ serverInfo, isLoading: false });
-    } catch (error) {
-      set({
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to fetch server info',
-        isLoading: false
-      });
-    }
+  // UI actions
+  setCurrentView: (view: IPTVStore['currentView']) =>
+    set({ currentView: view }),
+  setSelectedCategory: (categoryId: string | null) =>
+    set({ selectedCategory: categoryId }),
+  setLoading: (loading: boolean) => set({ isLoading: loading }),
+  setError: (error: string | null) => set({ error }),
+  setCurrentStream: (stream: IPTVStore['currentStream']) =>
+    set({ currentStream: stream }),
+  setPlaying: (playing: boolean) => set({ isPlaying: playing })
+});
+
+// Download Slice
+const downloadSlice = (set: any, get: any) => ({
+  // Download state
+  downloadProgress: {
+    channels: { isDownloading: false, progress: 0, total: 0 },
+    movies: { isDownloading: false, progress: 0, total: 0 },
+    shows: { isDownloading: false, progress: 0, total: 0 }
+  },
+  contentDownloaded: {
+    channels: false,
+    movies: false,
+    shows: false
   },
 
   // Download actions
@@ -723,7 +639,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
     const { currentProfileId } = get();
     if (!currentProfileId) return;
 
-    set((state) => ({
+    set((state: any) => ({
       downloadProgress: {
         ...state.downloadProgress,
         channels: { isDownloading: true, progress: 0, total: 0 }
@@ -741,7 +657,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
         );
         allChannels.push(...channels);
 
-        set((state) => ({
+        set((state: any) => ({
           downloadProgress: {
             ...state.downloadProgress,
             channels: {
@@ -760,7 +676,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
       );
       await indexedDBService.downloadChannels(currentProfileId, allChannels);
 
-      set((state) => ({
+      set((state: any) => ({
         downloadProgress: {
           ...state.downloadProgress,
           channels: {
@@ -775,7 +691,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
         }
       }));
     } catch (error) {
-      set((state) => ({
+      set((state: any) => ({
         downloadProgress: {
           ...state.downloadProgress,
           channels: { isDownloading: false, progress: 0, total: 0 }
@@ -790,7 +706,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
     const { currentProfileId } = get();
     if (!currentProfileId) return;
 
-    set((state) => ({
+    set((state: any) => ({
       downloadProgress: {
         ...state.downloadProgress,
         movies: { isDownloading: true, progress: 0, total: 0 }
@@ -808,7 +724,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
         );
         allMovies.push(...movies);
 
-        set((state) => ({
+        set((state: any) => ({
           downloadProgress: {
             ...state.downloadProgress,
             movies: {
@@ -827,7 +743,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
       );
       await indexedDBService.downloadMovies(currentProfileId, allMovies);
 
-      set((state) => ({
+      set((state: any) => ({
         downloadProgress: {
           ...state.downloadProgress,
           movies: {
@@ -842,7 +758,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
         }
       }));
     } catch (error) {
-      set((state) => ({
+      set((state: any) => ({
         downloadProgress: {
           ...state.downloadProgress,
           movies: { isDownloading: false, progress: 0, total: 0 }
@@ -857,7 +773,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
     const { currentProfileId } = get();
     if (!currentProfileId) return;
 
-    set((state) => ({
+    set((state: any) => ({
       downloadProgress: {
         ...state.downloadProgress,
         shows: { isDownloading: true, progress: 0, total: 0 }
@@ -875,7 +791,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
         );
         allShows.push(...shows);
 
-        set((state) => ({
+        set((state: any) => ({
           downloadProgress: {
             ...state.downloadProgress,
             shows: {
@@ -894,7 +810,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
       );
       await indexedDBService.downloadShows(currentProfileId, allShows);
 
-      set((state) => ({
+      set((state: any) => ({
         downloadProgress: {
           ...state.downloadProgress,
           shows: {
@@ -909,7 +825,7 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
         }
       }));
     } catch (error) {
-      set((state) => ({
+      set((state: any) => ({
         downloadProgress: {
           ...state.downloadProgress,
           shows: { isDownloading: false, progress: 0, total: 0 }
@@ -939,4 +855,11 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
       console.error('Failed to check download status:', error);
     }
   }
+});
+
+export const useIPTVStore = create<IPTVStore>()((set, get) => ({
+  ...profileSlice(set, get),
+  ...contentSlice(set, get),
+  ...uiSlice(set),
+  ...downloadSlice(set, get)
 }));

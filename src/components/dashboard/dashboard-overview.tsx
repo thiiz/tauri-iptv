@@ -1,6 +1,5 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -12,16 +11,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIPTVStore } from '@/lib/store';
 import type { Channel, Movie, Show } from '@/types/iptv';
-import {
-  Clock,
-  Film,
-  History,
-  MonitorPlay,
-  Play,
-  Star,
-  TrendingUp,
-  Tv
-} from 'lucide-react';
+import { Film, MonitorPlay, Play, TrendingUp, Tv } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { DownloadSection } from './download-section';
@@ -31,8 +21,6 @@ export function DashboardOverview() {
     channelCategories,
     movieCategories,
     showCategories,
-    favorites,
-    watchHistory,
     userProfile,
     serverInfo,
     channels,
@@ -112,18 +100,8 @@ export function DashboardOverview() {
         : 'Download to view',
       color: 'text-purple-600',
       bgColor: 'bg-purple-100 dark:bg-purple-900'
-    },
-    {
-      title: 'Favorites',
-      value: favorites.length,
-      icon: Star,
-      description: 'Favorited items',
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-100 dark:bg-yellow-900'
     }
   ];
-
-  const recentHistory = watchHistory.slice(0, 5);
 
   return (
     <div className='flex-1 space-y-6 p-6'>
@@ -331,90 +309,6 @@ export function DashboardOverview() {
               >
                 View All Series
               </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Watch History - Always show if there's history */}
-        {(recentHistory.length > 0 ||
-          (!contentDownloaded.channels &&
-            !contentDownloaded.movies &&
-            !contentDownloaded.shows)) && (
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center gap-2'>
-                <History className='h-5 w-5' />
-                Recent History
-              </CardTitle>
-              <CardDescription>Latest watched items</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className='h-48'>
-                <div className='space-y-2'>
-                  {recentHistory.length > 0 ? (
-                    recentHistory.map((item) => (
-                      <div
-                        key={`${item.type}-${item.id}`}
-                        className='hover:bg-muted flex cursor-pointer items-center justify-between rounded-lg p-2'
-                      >
-                        <div className='flex items-center gap-3'>
-                          {item.streamIcon ? (
-                            <img
-                              src={item.streamIcon}
-                              alt={item.name}
-                              className='h-8 w-8 rounded object-cover'
-                            />
-                          ) : (
-                            <div className='bg-muted flex h-8 w-8 items-center justify-center rounded'>
-                              {item.type === 'channel' && (
-                                <Tv className='h-4 w-4' />
-                              )}
-                              {item.type === 'movie' && (
-                                <Film className='h-4 w-4' />
-                              )}
-                              {item.type === 'episode' && (
-                                <MonitorPlay className='h-4 w-4' />
-                              )}
-                            </div>
-                          )}
-                          <div>
-                            <div className='text-sm font-medium'>
-                              {item.name}
-                            </div>
-                            <div className='text-muted-foreground text-xs'>
-                              <Badge variant='secondary' className='text-xs'>
-                                {item.type === 'channel' && 'Channel'}
-                                {item.type === 'movie' && 'Movie'}
-                                {item.type === 'episode' && 'Episode'}
-                              </Badge>
-                              <span className='ml-2'>
-                                {new Date(item.watchedAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <Button size='sm' variant='ghost'>
-                          <Play className='h-4 w-4' />
-                        </Button>
-                      </div>
-                    ))
-                  ) : (
-                    <div className='text-muted-foreground py-8 text-center'>
-                      <Clock className='mx-auto mb-2 h-8 w-8 opacity-50' />
-                      <p>No history yet</p>
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-              {recentHistory.length > 0 && (
-                <Button
-                  variant='outline'
-                  className='mt-4 w-full'
-                  onClick={() => setCurrentView('history')}
-                >
-                  View Complete History
-                </Button>
-              )}
             </CardContent>
           </Card>
         )}
