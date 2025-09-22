@@ -1,6 +1,7 @@
 'use client';
 
 import { useChannels } from '@/hooks/useChannels';
+import { useIPTVStore } from '@/lib/store';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Button } from '@/components/ui/button';
 import { Tv, Play } from 'lucide-react';
@@ -14,17 +15,20 @@ export function ChannelsContent({
   categoryId,
   autoFetch = false
 }: ChannelsContentProps) {
+  const { contentDownloaded } = useIPTVStore();
   const { channels, isLoading, error, fetchChannels } = useChannels({
     categoryId,
-    autoFetch,
+    autoFetch: autoFetch && contentDownloaded.channels, // Only auto-fetch if content is downloaded
     localOnly: true
   });
+
   console.log('ChannelsContent debug:', {
     channels,
     isLoading,
     error,
     autoFetch,
-    categoryId
+    categoryId,
+    contentDownloaded: contentDownloaded.channels
   });
 
   if (isLoading) {
@@ -40,6 +44,19 @@ export function ChannelsContent({
       <div className='p-6'>
         <div className='bg-destructive/10 text-destructive rounded-lg p-4'>
           {error}
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if content hasn't been downloaded
+  if (!contentDownloaded.channels) {
+    return (
+      <div className='p-6'>
+        <div className='rounded-lg bg-blue-100 p-4 text-center text-blue-800 dark:bg-blue-900 dark:text-blue-200'>
+          <Tv className='mx-auto mb-2 h-8 w-8' />
+          <p className='font-medium'>Canais não disponíveis</p>
+          <p className='text-sm'>Baixe os canais para visualizar o conteúdo</p>
         </div>
       </div>
     );

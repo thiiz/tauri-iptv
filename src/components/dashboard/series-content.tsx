@@ -1,9 +1,10 @@
 'use client';
 
 import { useSeries } from '@/hooks/useSeries';
+import { useIPTVStore } from '@/lib/store';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Button } from '@/components/ui/button';
-import { Tv } from 'lucide-react';
+import { Tv, Tv2 } from 'lucide-react';
 
 interface SeriesContentProps {
   categoryId?: string;
@@ -14,9 +15,10 @@ export function SeriesContent({
   categoryId,
   autoFetch = false
 }: SeriesContentProps) {
+  const { contentDownloaded } = useIPTVStore();
   const { shows, isLoading, error, fetchSeries } = useSeries({
     categoryId,
-    autoFetch,
+    autoFetch: autoFetch && contentDownloaded.shows, // Only auto-fetch if content is downloaded
     localOnly: true
   });
 
@@ -33,6 +35,19 @@ export function SeriesContent({
       <div className='p-6'>
         <div className='bg-destructive/10 text-destructive rounded-lg p-4'>
           {error}
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if content hasn't been downloaded
+  if (!contentDownloaded.shows) {
+    return (
+      <div className='p-6'>
+        <div className='rounded-lg bg-blue-100 p-4 text-center text-blue-800 dark:bg-blue-900 dark:text-blue-200'>
+          <Tv2 className='mx-auto mb-2 h-8 w-8' />
+          <p className='font-medium'>Séries não disponíveis</p>
+          <p className='text-sm'>Baixe as séries para visualizar o conteúdo</p>
         </div>
       </div>
     );

@@ -1,9 +1,10 @@
 'use client';
 
 import { useMovies } from '@/hooks/useMovies';
+import { useIPTVStore } from '@/lib/store';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Button } from '@/components/ui/button';
-import { Play } from 'lucide-react';
+import { Play, Film } from 'lucide-react';
 
 interface MoviesContentProps {
   categoryId?: string;
@@ -14,9 +15,10 @@ export function MoviesContent({
   categoryId,
   autoFetch = false
 }: MoviesContentProps) {
+  const { contentDownloaded } = useIPTVStore();
   const { movies, isLoading, error, fetchMovies } = useMovies({
     categoryId,
-    autoFetch,
+    autoFetch: autoFetch && contentDownloaded.movies, // Only auto-fetch if content is downloaded
     localOnly: true
   });
 
@@ -33,6 +35,19 @@ export function MoviesContent({
       <div className='p-6'>
         <div className='bg-destructive/10 text-destructive rounded-lg p-4'>
           {error}
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if content hasn't been downloaded
+  if (!contentDownloaded.movies) {
+    return (
+      <div className='p-6'>
+        <div className='rounded-lg bg-blue-100 p-4 text-center text-blue-800 dark:bg-blue-900 dark:text-blue-200'>
+          <Film className='mx-auto mb-2 h-8 w-8' />
+          <p className='font-medium'>Filmes não disponíveis</p>
+          <p className='text-sm'>Baixe os filmes para visualizar o conteúdo</p>
         </div>
       </div>
     );
