@@ -14,7 +14,11 @@ export function MoviesContent({
   categoryId,
   autoFetch = false
 }: MoviesContentProps) {
-  const { movies, isLoading, error } = useMovies({ categoryId, autoFetch });
+  const { movies, isLoading, error, fetchMovies } = useMovies({
+    categoryId,
+    autoFetch,
+    localOnly: true
+  });
 
   if (isLoading) {
     return (

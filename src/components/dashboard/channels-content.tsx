@@ -14,8 +14,11 @@ export function ChannelsContent({
   categoryId,
   autoFetch = false
 }: ChannelsContentProps) {
-  const { channels, isLoading, error } = useChannels({ categoryId, autoFetch });
-
+  const { channels, isLoading, error, fetchChannels } = useChannels({
+    categoryId,
+    autoFetch,
+    localOnly: true
+  });
   console.log('ChannelsContent debug:', {
     channels,
     isLoading,

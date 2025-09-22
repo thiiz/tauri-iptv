@@ -5,6 +5,7 @@ import type { Show } from '@/types/iptv';
 interface UseSeriesOptions {
   categoryId?: string;
   autoFetch?: boolean;
+  localOnly?: boolean;
 }
 
 interface UseSeriesReturn {
@@ -31,14 +32,14 @@ export const useSeries = (options: UseSeriesOptions = {}): UseSeriesReturn => {
         setIsLoading(true);
         setError(null);
 
-        const fetchedShows = await iptvDataService.getShows(
+        const fetchedSeries = await iptvDataService.getShows(
           fetchOptions,
-          forceRefresh
+          forceRefresh,
+          options.localOnly
         );
 
-        setShows(fetchedShows);
         setIsLoading(false);
-        return fetchedShows;
+        return fetchedSeries;
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to fetch series';
@@ -47,7 +48,7 @@ export const useSeries = (options: UseSeriesOptions = {}): UseSeriesReturn => {
         throw err;
       }
     },
-    []
+    [options.localOnly]
   );
 
   // Auto fetch on mount if enabled

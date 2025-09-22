@@ -5,6 +5,7 @@ import type { Channel } from '@/types/iptv';
 interface UseChannelsOptions {
   categoryId?: string;
   autoFetch?: boolean;
+  localOnly?: boolean;
 }
 
 interface UseChannelsReturn {
@@ -35,7 +36,8 @@ export const useChannels = (
 
         const fetchedChannels = await iptvDataService.getChannels(
           fetchOptions,
-          forceRefresh
+          forceRefresh,
+          options.localOnly
         );
 
         setChannels(fetchedChannels);
@@ -49,7 +51,7 @@ export const useChannels = (
         throw err;
       }
     },
-    []
+    [options.localOnly]
   );
 
   // Auto fetch on mount if enabled

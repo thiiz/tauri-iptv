@@ -5,6 +5,7 @@ import type { Movie } from '@/types/iptv';
 interface UseMoviesOptions {
   categoryId?: string;
   autoFetch?: boolean;
+  localOnly?: boolean;
 }
 
 interface UseMoviesReturn {
@@ -33,7 +34,8 @@ export const useMovies = (options: UseMoviesOptions = {}): UseMoviesReturn => {
 
         const fetchedMovies = await iptvDataService.getMovies(
           fetchOptions,
-          forceRefresh
+          forceRefresh,
+          options.localOnly
         );
 
         setMovies(fetchedMovies);
@@ -47,7 +49,7 @@ export const useMovies = (options: UseMoviesOptions = {}): UseMoviesReturn => {
         throw err;
       }
     },
-    []
+    [options.localOnly]
   );
 
   // Auto fetch on mount if enabled

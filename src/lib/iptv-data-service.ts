@@ -309,14 +309,24 @@ export class IPTVDataService {
   // Content methods with caching
   async getChannels(
     options?: { categoryId?: string; page?: number; limit?: number },
-    forceRefresh = false
+    forceRefresh = false,
+    localOnly = false
   ): Promise<Channel[]> {
     if (!forceRefresh) {
       await this.ensureDBInitialized();
-      const cached = await indexedDBService.getChannels(options?.categoryId);
+      const cached = await indexedDBService.getChannels(
+        options?.categoryId,
+        this.currentProfile?.id
+      );
       if (cached.length > 0) {
         return cached;
       }
+    }
+
+    // Se for apenas local e não tem cache, retornar array vazio
+    if (localOnly) {
+      console.log('Local only mode: returning cached channels or empty array');
+      return [];
     }
 
     this.ensureInitialized();
@@ -361,14 +371,24 @@ export class IPTVDataService {
 
   async getMovies(
     options?: { categoryId?: string; page?: number; limit?: number },
-    forceRefresh = false
+    forceRefresh = false,
+    localOnly = false
   ): Promise<Movie[]> {
     if (!forceRefresh) {
       await this.ensureDBInitialized();
-      const cached = await indexedDBService.getMovies(options?.categoryId);
+      const cached = await indexedDBService.getMovies(
+        options?.categoryId,
+        this.currentProfile?.id
+      );
       if (cached.length > 0) {
         return cached;
       }
+    }
+
+    // Se for apenas local e não tem cache, retornar array vazio
+    if (localOnly) {
+      console.log('Local only mode: returning cached movies or empty array');
+      return [];
     }
 
     this.ensureInitialized();
@@ -472,14 +492,24 @@ export class IPTVDataService {
 
   async getShows(
     options?: { categoryId?: string; page?: number; limit?: number },
-    forceRefresh = false
+    forceRefresh = false,
+    localOnly = false
   ): Promise<Show[]> {
     if (!forceRefresh) {
       await this.ensureDBInitialized();
-      const cached = await indexedDBService.getShows(options?.categoryId);
+      const cached = await indexedDBService.getShows(
+        options?.categoryId,
+        this.currentProfile?.id
+      );
       if (cached.length > 0) {
         return cached;
       }
+    }
+
+    // Se for apenas local e não tem cache, retornar array vazio
+    if (localOnly) {
+      console.log('Local only mode: returning cached shows or empty array');
+      return [];
     }
 
     this.ensureInitialized();

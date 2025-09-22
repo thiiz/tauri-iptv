@@ -14,7 +14,11 @@ export function SeriesContent({
   categoryId,
   autoFetch = false
 }: SeriesContentProps) {
-  const { shows, isLoading, error } = useSeries({ categoryId, autoFetch });
+  const { shows, isLoading, error, fetchSeries } = useSeries({
+    categoryId,
+    autoFetch,
+    localOnly: true
+  });
 
   if (isLoading) {
     return (
