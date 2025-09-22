@@ -20,8 +20,9 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-export function ShowsView() {
+export default function ShowsView() {
   const router = useRouter();
+  const { currentProfileId } = useIPTVStore();
   const {
     showCategories,
     shows,
@@ -67,7 +68,7 @@ export function ShowsView() {
 
   const handleViewShow = (show: Show) => {
     // Navigate to series details page
-    router.push(`/dashboard/series/${show.id}`);
+    router.push(`/dashboard/${currentProfileId}/series/${show.id}`);
   };
 
   return (

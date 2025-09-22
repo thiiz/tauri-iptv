@@ -46,10 +46,8 @@ export default function EpisodePlaybackPage() {
         const seriesDetails = await iptvDataService.getShowDetails(seriesId);
         setSeries(seriesDetails);
 
-        // Filter episodes for the specific season
-        const episodes =
-          seriesDetails.episodes?.filter((ep) => ep.season === seasonNumber) ||
-          [];
+        // Get episodes for the specific season
+        const episodes = seriesDetails.episodes?.[seasonNumber] || [];
         setSeasonEpisodes(episodes);
 
         // Find the current episode
@@ -80,11 +78,13 @@ export default function EpisodePlaybackPage() {
   }, [seriesId, seasonNumber, episodeNumber]);
 
   const handleBackToSeason = () => {
-    router.push(`/dashboard/series/${seriesId}/season/${seasonNumber}`);
+    router.push(
+      `/dashboard/${params.profile}/series/${seriesId}/season/${seasonNumber}`
+    );
   };
 
   const handleBackToSeries = () => {
-    router.push(`/dashboard/series/${seriesId}`);
+    router.push(`/dashboard/${params.profile}/series/${seriesId}`);
   };
 
   const navigateToEpisode = (targetEpisodeNum: number) => {
@@ -93,7 +93,7 @@ export default function EpisodePlaybackPage() {
     );
     if (targetEpisode) {
       router.push(
-        `/dashboard/series/${seriesId}/season/${seasonNumber}/episode/${targetEpisodeNum}`
+        `/dashboard/${params.profile}/series/${seriesId}/season/${seasonNumber}/episode/${targetEpisodeNum}`
       );
     }
   };

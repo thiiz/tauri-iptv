@@ -34,11 +34,13 @@ export default function SeriesDetailsPage() {
         setSeries(seriesDetails);
 
         // Set default season to the first one
-        const seasons = Object.keys(seriesDetails.episodes)
-          .map((key) => parseInt(key))
-          .sort((a, b) => a - b);
-        if (seasons.length > 0) {
-          setSelectedSeason(seasons[0]);
+        if (seriesDetails.episodes) {
+          const seasons = Object.keys(seriesDetails.episodes)
+            .map((key) => parseInt(key))
+            .sort((a, b) => a - b);
+          if (seasons.length > 0) {
+            setSelectedSeason(seasons[0]);
+          }
         }
       } catch (err) {
         const errorMessage =

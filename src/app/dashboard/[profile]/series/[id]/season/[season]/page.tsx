@@ -34,9 +34,7 @@ export default function SeasonEpisodesPage() {
         setSeries(seriesDetails);
 
         // Filter episodes for the specific season
-        const seasonEpisodes =
-          seriesDetails.episodes?.filter((ep) => ep.season === seasonNumber) ||
-          [];
+        const seasonEpisodes = seriesDetails.episodes?.[seasonNumber] || [];
         setEpisodes(seasonEpisodes);
       } catch (err) {
         const errorMessage =
@@ -53,12 +51,12 @@ export default function SeasonEpisodesPage() {
 
   const handlePlayEpisode = (episode: Episode) => {
     router.push(
-      `/dashboard/series/${seriesId}/season/${seasonNumber}/episode/${episode.episodeNum}`
+      `/dashboard/${params.profile}/series/${seriesId}/season/${seasonNumber}/episode/${episode.episodeNum}`
     );
   };
 
   const handleBackToSeries = () => {
-    router.push(`/dashboard/series/${seriesId}`);
+    router.push(`/dashboard/${params.profile}/series/${seriesId}`);
   };
 
   if (isLoading) {

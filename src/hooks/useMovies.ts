@@ -1,49 +1,53 @@
 import { iptvDataService } from '@/lib/iptv-data-service';
-import { useIPTVStore } from '@/lib/store';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import type { Movie } from '@/types/iptv';
 
 interface UseMoviesOptions {
   categoryId?: string;
   autoFetch?: boolean;
 }
 
-export const useMovies = (options: UseMoviesOptions = {}) => {
-  const { movies, isLoading, error, setMovies, setLoading, setError } =
-    useIPTVStore((state) => ({
-      movies: state.movies,
-      isLoading: state.isLoading,
-      error: state.error,
-      setMovies: state.setMovies,
-      setLoading: state.setLoading,
-      setError: state.setError
-    }));
+interface UseMoviesReturn {
+  movies: Movie[];
+  isLoading: boolean;
+  error: string | null;
+  fetchMovies: (
+    fetchOptions?: { categoryId?: string; page?: number; limit?: number },
+    forceRefresh?: boolean
+  ) => Promise<Movie[]>;
+}
+
+export const useMovies = (options: UseMoviesOptions = {}): UseMoviesReturn => {
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchMovies = useCallback(
     async (
       fetchOptions?: { categoryId?: string; page?: number; limit?: number },
       forceRefresh = false
-    ) => {
+    ): Promise<Movie[]> => {
       try {
-        setLoading(true);
+        setIsLoading(true);
         setError(null);
 
         const fetchedMovies = await iptvDataService.getMovies(
           fetchOptions,
           forceRefresh
         );
-        await setMovies(fetchedMovies);
 
-        setLoading(false);
+        setMovies(fetchedMovies);
+        setIsLoading(false);
         return fetchedMovies;
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to fetch movies';
         setError(errorMessage);
-        setLoading(false);
+        setIsLoading(false);
         throw err;
       }
     },
-    [setMovies, setLoading, setError]
+    []
   );
 
   // Auto fetch on mount if enabled

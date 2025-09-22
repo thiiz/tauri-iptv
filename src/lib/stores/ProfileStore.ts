@@ -26,6 +26,9 @@ interface ProfileStore {
   // User Data
   settings: AppSettings;
 
+  // Loading state
+  isLoading: boolean;
+
   // Actions
   setProfiles: (profiles: ProfileAccount[]) => Promise<void>;
   addProfile: (profile: ProfileAccount) => Promise<void>;
@@ -42,6 +45,7 @@ interface ProfileStore {
   setServerInfo: (info: ServerInfo) => Promise<void>;
   updateSettings: (settings: Partial<AppSettings>) => Promise<void>;
   clearData: () => Promise<void>;
+  setIsLoading: (isLoading: boolean) => void;
 
   // Async data loading actions
   loadProfiles: () => Promise<void>;
@@ -60,6 +64,7 @@ export const useProfileStore = create<ProfileStore>()((set, get) => ({
   isAuthenticated: false,
   userProfile: null,
   serverInfo: null,
+  isLoading: false,
   settings: {
     theme: 'system',
     autoplay: false,
@@ -187,6 +192,8 @@ export const useProfileStore = create<ProfileStore>()((set, get) => ({
     });
     await indexedDBService.clearAllData();
   },
+
+  setIsLoading: (isLoading) => set({ isLoading }),
 
   // Async actions for loading data from IndexedDB
   loadProfiles: async () => {

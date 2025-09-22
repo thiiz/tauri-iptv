@@ -67,7 +67,7 @@ export function SettingsView() {
 
   const handleLogout = () => {
     clearData();
-    router.push('/setup');
+    router.push('/dashboard/profiles');
   };
 
   const handleClearCache = () => {

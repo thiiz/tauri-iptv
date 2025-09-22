@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { useIPTVStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import {
   ChevronLeft,
@@ -18,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { ModeToggle } from './ThemeToggle/theme-toggle';
+import { usePathname, useRouter } from 'next/navigation';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -25,18 +25,47 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { currentView, setCurrentView, userProfile, serverInfo } =
-    useIPTVStore();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // Extract profile from pathname
+  const profileMatch = pathname.match(/\/dashboard\/([^\/]+)/);
+  const currentProfile = profileMatch ? profileMatch[1] : '';
 
   const navigationItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'channels', label: 'Canais', icon: Tv },
-    { id: 'movies', label: 'Filmes', icon: Film },
-    { id: 'shows', label: 'Séries', icon: MonitorPlay }
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: Home,
+      path: `/dashboard/${currentProfile}`
+    },
+    {
+      id: 'channels',
+      label: 'Canais',
+      icon: Tv,
+      path: `/dashboard/${currentProfile}/channels`
+    },
+    {
+      id: 'movies',
+      label: 'Filmes',
+      icon: Film,
+      path: `/dashboard/${currentProfile}/movies`
+    },
+    {
+      id: 'series',
+      label: 'Séries',
+      icon: MonitorPlay,
+      path: `/dashboard/${currentProfile}/series`
+    }
   ];
 
   const userItems = [
-    { id: 'settings', label: 'Configurações', icon: Settings }
+    {
+      id: 'settings',
+      label: 'Configurações',
+      icon: Settings,
+      path: `/dashboard/${currentProfile}/settings`
+    }
   ];
 
   return (
@@ -88,12 +117,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               return (
                 <Button
                   key={item.id}
-                  variant={currentView === item.id ? 'secondary' : 'ghost'}
+                  variant={pathname.includes(item.path) ? 'secondary' : 'ghost'}
                   className={cn(
                     'w-full justify-start',
                     sidebarCollapsed && 'justify-center px-2'
                   )}
-                  onClick={() => setCurrentView(item.id as any)}
+                  onClick={() => router.push(item.path)}
                 >
                   <Icon className='h-4 w-4' />
                   {!sidebarCollapsed && (
@@ -112,12 +141,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               return (
                 <Button
                   key={item.id}
-                  variant={currentView === item.id ? 'secondary' : 'ghost'}
+                  variant={pathname.includes(item.path) ? 'secondary' : 'ghost'}
                   className={cn(
                     'w-full justify-start',
                     sidebarCollapsed && 'justify-center px-2'
                   )}
-                  onClick={() => setCurrentView(item.id as any)}
+                  onClick={() => router.push(item.path)}
                 >
                   <Icon className='h-4 w-4' />
                   {!sidebarCollapsed && (
@@ -128,18 +157,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             })}
           </div>
         </ScrollArea>
-
-        {/* User Info */}
-        {!sidebarCollapsed && userProfile && (
-          <div className='border-t p-4'>
-            <div className='text-sm'>
-              <div className='font-medium'>{userProfile.username}</div>
-              <div className='text-muted-foreground'>
-                Expira: {new Date(userProfile.expDate).toLocaleDateString()}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Theme Toggle */}
         <div className='border-t p-4'>
@@ -152,9 +169,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             )}
           >
             <ModeToggle />
-            {!sidebarCollapsed && serverInfo && (
+            {!sidebarCollapsed && (
               <div className='text-muted-foreground text-xs'>
-                {serverInfo.url}
+                {currentProfile}
               </div>
             )}
           </div>

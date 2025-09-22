@@ -44,6 +44,7 @@ interface IPTVDBSchema extends DBSchema {
     key: string;
     value: AppSettings;
   };
+  [key: string]: any; // Allow additional properties
 }
 
 export class IndexedDBService {
@@ -67,7 +68,7 @@ export class IndexedDBService {
         // If upgrading from version 1, we need to recreate stores with new schema
         if (oldVersion < 2) {
           // Delete existing stores if they exist
-          const storeNames = [
+          const storeNames: (keyof IPTVDBSchema)[] = [
             'profiles',
             'categories',
             'channels',
@@ -77,8 +78,8 @@ export class IndexedDBService {
             'settings'
           ];
           storeNames.forEach((storeName) => {
-            if (db.objectStoreNames.contains(storeName)) {
-              db.deleteObjectStore(storeName);
+            if (db.objectStoreNames.contains(storeName as any)) {
+              db.deleteObjectStore(storeName as any);
             }
           });
         }
@@ -412,17 +413,14 @@ export class IndexedDBService {
   async saveSettings(settings: AppSettings): Promise<void> {
     const db = await this.ensureDB();
     if (!db) return;
-    await db.put('settings', { key: 'app', ...settings });
+    await db.put('settings', settings);
   }
 
   async getSettings(): Promise<AppSettings | null> {
     const db = await this.ensureDB();
     if (!db) return null;
     const settings = await db.get('settings', 'app');
-    if (!settings) return null;
-
-    const { key, ...appSettings } = settings;
-    return appSettings as AppSettings;
+    return settings || null;
   }
 
   // Utility methods

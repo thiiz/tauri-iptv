@@ -1,49 +1,53 @@
 import { iptvDataService } from '@/lib/iptv-data-service';
-import { useIPTVStore } from '@/lib/store';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import type { Show } from '@/types/iptv';
 
 interface UseSeriesOptions {
   categoryId?: string;
   autoFetch?: boolean;
 }
 
-export const useSeries = (options: UseSeriesOptions = {}) => {
-  const { shows, isLoading, error, setShows, setLoading, setError } =
-    useIPTVStore((state) => ({
-      shows: state.shows,
-      isLoading: state.isLoading,
-      error: state.error,
-      setShows: state.setShows,
-      setLoading: state.setLoading,
-      setError: state.setError
-    }));
+interface UseSeriesReturn {
+  shows: Show[];
+  isLoading: boolean;
+  error: string | null;
+  fetchSeries: (
+    fetchOptions?: { categoryId?: string; page?: number; limit?: number },
+    forceRefresh?: boolean
+  ) => Promise<Show[]>;
+}
+
+export const useSeries = (options: UseSeriesOptions = {}): UseSeriesReturn => {
+  const [shows, setShows] = useState<Show[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchSeries = useCallback(
     async (
       fetchOptions?: { categoryId?: string; page?: number; limit?: number },
       forceRefresh = false
-    ) => {
+    ): Promise<Show[]> => {
       try {
-        setLoading(true);
+        setIsLoading(true);
         setError(null);
 
         const fetchedShows = await iptvDataService.getShows(
           fetchOptions,
           forceRefresh
         );
-        await setShows(fetchedShows);
 
-        setLoading(false);
+        setShows(fetchedShows);
+        setIsLoading(false);
         return fetchedShows;
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to fetch series';
         setError(errorMessage);
-        setLoading(false);
+        setIsLoading(false);
         throw err;
       }
     },
-    [setShows, setLoading, setError]
+    []
   );
 
   // Auto fetch on mount if enabled

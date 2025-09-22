@@ -1,49 +1,55 @@
 import { iptvDataService } from '@/lib/iptv-data-service';
-import { useIPTVStore } from '@/lib/store';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import type { Channel } from '@/types/iptv';
 
 interface UseChannelsOptions {
   categoryId?: string;
   autoFetch?: boolean;
 }
 
-export const useChannels = (options: UseChannelsOptions = {}) => {
-  const { channels, isLoading, error, setChannels, setLoading, setError } =
-    useIPTVStore((state) => ({
-      channels: state.channels,
-      isLoading: state.isLoading,
-      error: state.error,
-      setChannels: state.setChannels,
-      setLoading: state.setLoading,
-      setError: state.setError
-    }));
+interface UseChannelsReturn {
+  channels: Channel[];
+  isLoading: boolean;
+  error: string | null;
+  fetchChannels: (
+    fetchOptions?: { categoryId?: string; page?: number; limit?: number },
+    forceRefresh?: boolean
+  ) => Promise<Channel[]>;
+}
+
+export const useChannels = (
+  options: UseChannelsOptions = {}
+): UseChannelsReturn => {
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchChannels = useCallback(
     async (
       fetchOptions?: { categoryId?: string; page?: number; limit?: number },
       forceRefresh = false
-    ) => {
+    ): Promise<Channel[]> => {
       try {
-        setLoading(true);
+        setIsLoading(true);
         setError(null);
 
         const fetchedChannels = await iptvDataService.getChannels(
           fetchOptions,
           forceRefresh
         );
-        await setChannels(fetchedChannels);
 
-        setLoading(false);
+        setChannels(fetchedChannels);
+        setIsLoading(false);
         return fetchedChannels;
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to fetch channels';
         setError(errorMessage);
-        setLoading(false);
+        setIsLoading(false);
         throw err;
       }
     },
-    [setChannels, setLoading, setError]
+    []
   );
 
   // Auto fetch on mount if enabled
