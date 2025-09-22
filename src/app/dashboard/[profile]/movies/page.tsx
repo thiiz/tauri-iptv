@@ -18,5 +18,5 @@ export default function MoviesPage() {
     return null;
   }
 
-  return <MoviesContent categoryId={undefined} />;
+  return <MoviesContent categoryId={undefined} autoFetch={true} />;
 }

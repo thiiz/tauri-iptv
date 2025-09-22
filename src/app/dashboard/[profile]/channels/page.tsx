@@ -18,5 +18,5 @@ export default function ChannelsPage() {
     return null;
   }
 
-  return <ChannelsContent categoryId={undefined} />;
+  return <ChannelsContent categoryId={undefined} autoFetch={true} />;
 }

@@ -53,7 +53,12 @@ export const useSeries = (options: UseSeriesOptions = {}): UseSeriesReturn => {
   // Auto fetch on mount if enabled
   useEffect(() => {
     if (options.autoFetch) {
-      fetchSeries({ categoryId: options.categoryId });
+      console.log('Auto-fetching series...', {
+        categoryId: options.categoryId
+      });
+      fetchSeries({ categoryId: options.categoryId }).catch((err) => {
+        console.error('Failed to auto-fetch series:', err);
+      });
     }
   }, [options.autoFetch, options.categoryId, fetchSeries]);
 

@@ -89,10 +89,17 @@ export function useProfileValidation() {
 
   useEffect(() => {
     const validateProfile = async () => {
+      console.log('ProfileValidation: Validating profile...', {
+        profileId,
+        isLoading,
+        currentProfile,
+        profiles
+      });
       if (isLoading || !profileId) return;
 
       // Verificar se o perfil existe
       const profileExists = profiles.some((p) => p.id === profileId);
+      console.log('ProfileValidation: Profile exists:', profileExists);
 
       if (!profileExists) {
         router.push('/dashboard/profiles');
@@ -101,9 +108,11 @@ export function useProfileValidation() {
 
       // Se o perfil atual é diferente do solicitado, mudar
       if (!currentProfile || currentProfile.id !== profileId) {
+        console.log('ProfileValidation: Setting current profile...');
         await setCurrentProfile(profileId);
       }
 
+      console.log('ProfileValidation: Validation completed');
       setIsValidating(false);
     };
 

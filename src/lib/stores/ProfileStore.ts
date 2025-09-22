@@ -123,10 +123,17 @@ export const useProfileStore = create<ProfileStore>()((set, get) => ({
 
   setCurrentProfile: async (profileId) => {
     if (!profileId) return undefined;
+    console.log('ProfileStore: Setting current profile:', profileId);
     const profile = await profileServiceIndexedDB.getProfile(profileId);
+    console.log(
+      'ProfileStore: Retrieved profile from IndexedDB:',
+      profile?.name
+    );
     if (profile) {
       await profileServiceIndexedDB.setActiveProfile(profileId);
+      console.log('ProfileStore: Initializing IPTV service with profile...');
       await iptvDataService.initializeWithProfile(profile);
+      console.log('ProfileStore: IPTV service initialized');
 
       set({
         currentProfileId: profileId,
@@ -138,6 +145,9 @@ export const useProfileStore = create<ProfileStore>()((set, get) => ({
 
       // Update last used
       await profileServiceIndexedDB.updateProfileLastUsed(profileId);
+      console.log('ProfileStore: Profile setup completed');
+    } else {
+      console.warn('ProfileStore: Profile not found in IndexedDB');
     }
   },
 

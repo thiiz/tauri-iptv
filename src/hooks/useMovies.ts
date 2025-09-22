@@ -53,7 +53,12 @@ export const useMovies = (options: UseMoviesOptions = {}): UseMoviesReturn => {
   // Auto fetch on mount if enabled
   useEffect(() => {
     if (options.autoFetch) {
-      fetchMovies({ categoryId: options.categoryId });
+      console.log('Auto-fetching movies...', {
+        categoryId: options.categoryId
+      });
+      fetchMovies({ categoryId: options.categoryId }).catch((err) => {
+        console.error('Failed to auto-fetch movies:', err);
+      });
     }
   }, [options.autoFetch, options.categoryId, fetchMovies]);
 

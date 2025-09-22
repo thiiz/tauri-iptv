@@ -7,10 +7,14 @@ import { Tv } from 'lucide-react';
 
 interface SeriesContentProps {
   categoryId?: string;
+  autoFetch?: boolean;
 }
 
-export function SeriesContent({ categoryId }: SeriesContentProps) {
-  const { shows, isLoading, error } = useSeries({ categoryId });
+export function SeriesContent({
+  categoryId,
+  autoFetch = false
+}: SeriesContentProps) {
+  const { shows, isLoading, error } = useSeries({ categoryId, autoFetch });
 
   if (isLoading) {
     return (

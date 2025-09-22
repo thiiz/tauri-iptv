@@ -18,5 +18,5 @@ export default function SeriesPage() {
     return null;
   }
 
-  return <SeriesContent categoryId={undefined} />;
+  return <SeriesContent categoryId={undefined} autoFetch={true} />;
 }

@@ -55,7 +55,12 @@ export const useChannels = (
   // Auto fetch on mount if enabled
   useEffect(() => {
     if (options.autoFetch) {
-      fetchChannels({ categoryId: options.categoryId });
+      console.log('Auto-fetching channels...', {
+        categoryId: options.categoryId
+      });
+      fetchChannels({ categoryId: options.categoryId }).catch((err) => {
+        console.error('Failed to auto-fetch channels:', err);
+      });
     }
   }, [options.autoFetch, options.categoryId, fetchChannels]);
 

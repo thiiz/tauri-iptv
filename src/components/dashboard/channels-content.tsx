@@ -7,10 +7,22 @@ import { Tv, Play } from 'lucide-react';
 
 interface ChannelsContentProps {
   categoryId?: string;
+  autoFetch?: boolean;
 }
 
-export function ChannelsContent({ categoryId }: ChannelsContentProps) {
-  const { channels, isLoading, error } = useChannels({ categoryId });
+export function ChannelsContent({
+  categoryId,
+  autoFetch = false
+}: ChannelsContentProps) {
+  const { channels, isLoading, error } = useChannels({ categoryId, autoFetch });
+
+  console.log('ChannelsContent debug:', {
+    channels,
+    isLoading,
+    error,
+    autoFetch,
+    categoryId
+  });
 
   if (isLoading) {
     return (

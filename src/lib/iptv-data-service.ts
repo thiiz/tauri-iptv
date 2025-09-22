@@ -39,12 +39,15 @@ export class IPTVDataService {
   }
 
   async initialize(config: XtreamConfig): Promise<void> {
+    console.log('IPTV Service: Initializing with config:', config.url);
     this.config = config;
   }
 
   async initializeWithProfile(profile: ProfileAccount): Promise<void> {
+    console.log('IPTV Service: Initializing with profile:', profile.name);
     this.currentProfile = profile;
     await this.initialize(profile.config);
+    console.log('IPTV Service: Initialization completed');
   }
 
   private ensureInitialized(): void {

@@ -7,10 +7,14 @@ import { Play } from 'lucide-react';
 
 interface MoviesContentProps {
   categoryId?: string;
+  autoFetch?: boolean;
 }
 
-export function MoviesContent({ categoryId }: MoviesContentProps) {
-  const { movies, isLoading, error } = useMovies({ categoryId });
+export function MoviesContent({
+  categoryId,
+  autoFetch = false
+}: MoviesContentProps) {
+  const { movies, isLoading, error } = useMovies({ categoryId, autoFetch });
 
   if (isLoading) {
     return (

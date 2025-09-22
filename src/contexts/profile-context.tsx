@@ -91,11 +91,14 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   const setCurrentProfile = async (profileId: string) => {
     try {
+      console.log('Setting current profile:', profileId);
       await setCurrentProfileStore(profileId);
+      console.log('Profile set successfully in store');
 
       // Initialize data for the selected profile
       const profile = profiles.find((p) => p.id === profileId);
       if (profile) {
+        console.log('Found profile:', profile.name);
         setConfig(profile.config);
         setAuthenticated(true);
 
@@ -109,6 +112,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
         // Check download status
         await checkContentDownloaded();
+        console.log('Profile setup completed');
+      } else {
+        console.warn('Profile not found in profiles array');
       }
     } catch (error) {
       console.error('Failed to set current profile:', error);
