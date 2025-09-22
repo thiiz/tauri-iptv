@@ -143,7 +143,7 @@ export class IndexedDBService {
     this.db = await this.dbPromise;
   }
 
-  private async ensureDB(): Promise<IDBPDatabase<IPTVDBSchema> | null> {
+  public async ensureDB(): Promise<IDBPDatabase<IPTVDBSchema> | null> {
     if (!this.db) {
       await this.init();
     }
@@ -480,6 +480,35 @@ export class IndexedDBService {
     }
 
     return count > 0;
+  }
+
+  // Quick check methods for content existence
+  async hasChannels(profileId: string): Promise<boolean> {
+    const db = await this.ensureDB();
+    if (!db) return false;
+
+    const channels = await db.getAllFromIndex(
+      'channels',
+      'by-profile',
+      profileId
+    );
+    return channels.length > 0;
+  }
+
+  async hasMovies(profileId: string): Promise<boolean> {
+    const db = await this.ensureDB();
+    if (!db) return false;
+
+    const movies = await db.getAllFromIndex('movies', 'by-profile', profileId);
+    return movies.length > 0;
+  }
+
+  async hasShows(profileId: string): Promise<boolean> {
+    const db = await this.ensureDB();
+    if (!db) return false;
+
+    const shows = await db.getAllFromIndex('shows', 'by-profile', profileId);
+    return shows.length > 0;
   }
 
   // Get download status for all content types

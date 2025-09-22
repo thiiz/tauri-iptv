@@ -13,6 +13,7 @@ import { create } from 'zustand';
 import { indexedDBService } from './indexeddb-service';
 import { iptvDataService } from './iptv-data-service';
 import { profileServiceIndexedDB } from './profile-service-indexeddb';
+import { useProfileContentStore } from './stores/ProfileContentStore';
 
 interface IPTVStore {
   // Profile Management
@@ -861,5 +862,48 @@ export const useIPTVStore = create<IPTVStore>()((set, get) => ({
   ...profileSlice(set, get),
   ...contentSlice(set, get),
   ...uiSlice(set),
-  ...downloadSlice(set, get)
+  ...downloadSlice(set, get),
+
+  // Content getters that delegate to ProfileContentStore
+  get channels() {
+    const { currentProfileId } = get();
+    if (!currentProfileId) return [];
+    return useProfileContentStore.getState().getChannels(currentProfileId);
+  },
+
+  get movies() {
+    const { currentProfileId } = get();
+    if (!currentProfileId) return [];
+    return useProfileContentStore.getState().getMovies(currentProfileId);
+  },
+
+  get shows() {
+    const { currentProfileId } = get();
+    if (!currentProfileId) return [];
+    return useProfileContentStore.getState().getShows(currentProfileId);
+  },
+
+  get channelCategories() {
+    const { currentProfileId } = get();
+    if (!currentProfileId) return [];
+    return useProfileContentStore
+      .getState()
+      .getChannelCategories(currentProfileId);
+  },
+
+  get movieCategories() {
+    const { currentProfileId } = get();
+    if (!currentProfileId) return [];
+    return useProfileContentStore
+      .getState()
+      .getMovieCategories(currentProfileId);
+  },
+
+  get showCategories() {
+    const { currentProfileId } = get();
+    if (!currentProfileId) return [];
+    return useProfileContentStore
+      .getState()
+      .getShowCategories(currentProfileId);
+  }
 }));
