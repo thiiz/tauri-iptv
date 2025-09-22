@@ -38,6 +38,9 @@ export const useSeries = (options: UseSeriesOptions = {}): UseSeriesReturn => {
           options.localOnly
         );
 
+        // Update the shows state with fetched data
+        setShows(fetchedSeries);
+
         setIsLoading(false);
         return fetchedSeries;
       } catch (err) {
