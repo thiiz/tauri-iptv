@@ -230,7 +230,7 @@ export default function SeasonEpisodesPage() {
               <Play className='text-muted-foreground mx-auto mb-4 h-16 w-16' />
               <h3 className='mb-2 text-xl font-semibold'>No Episodes Found</h3>
               <p className='text-muted-foreground mb-6'>
-                This season doesn't have any episodes available yet.
+                This season doesn&apos;t have any episodes available yet.
               </p>
               <Button onClick={handleBackToSeries}>Back to Series</Button>
             </div>

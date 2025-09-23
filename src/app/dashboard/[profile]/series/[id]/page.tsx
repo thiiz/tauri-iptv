@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { iptvDataService } from '@/lib/iptv-data-service';
 import type { Episode, ShowDetails } from '@/types/iptv';
 import { ArrowLeft, Calendar, Clock, Play, Star } from 'lucide-react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -173,9 +174,11 @@ export default function SeriesDetailsPage() {
               <Card>
                 <CardContent className='p-6'>
                   {series.streamIcon ? (
-                    <img
+                    <Image
                       src={series.streamIcon}
                       alt={series.name}
+                      width={300}
+                      height={450}
                       className='aspect-[2/3] w-full rounded-lg object-cover'
                     />
                   ) : (
