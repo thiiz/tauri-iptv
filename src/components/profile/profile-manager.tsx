@@ -19,25 +19,30 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { profileService } from '@/lib/profile-service';
+import { iptvDataService } from '@/lib/iptv-data-service';
+import { profileServiceIndexedDB } from '@/lib/profile-service-indexeddb';
 import { useIPTVStore } from '@/lib/store';
-import { tauriIPTVService } from '@/lib/tauri-iptv-service';
+import { useProfile } from '@/contexts/profile-context';
 import type { ProfileAccount, XtreamConfig } from '@/types/iptv';
 import { Play, Plus, Settings, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 // Using console.log instead of toast for now
 
 export function ProfileManager() {
+  const router = useRouter();
+  const { setCurrentProfile } = useProfile();
+
   const {
     profiles,
     currentProfileId,
     setProfiles,
     addProfile,
     deleteProfile,
-    setCurrentProfile,
     setAuthenticated,
     setUserProfile,
-    setServerInfo
+    setServerInfo,
+    setError
   } = useIPTVStore();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -74,18 +79,21 @@ export function ProfileManager() {
       };
 
       // Test connection first
-      await tauriIPTVService.initialize(config);
-      const isConnected = await tauriIPTVService.testConnection();
+      await iptvDataService.initialize(config);
+      const isConnected = await iptvDataService.testConnection();
 
       if (!isConnected) {
         console.error('Failed to connect with provided credentials');
         return;
       }
 
-      const profile = profileService.createProfile(newProfile.name, config);
+      const profile = profileServiceIndexedDB.createProfile(
+        newProfile.name,
+        config
+      );
 
-      // Save to backend
-      await profileService.saveProfile(profile);
+      // Save to IndexedDB
+      await profileServiceIndexedDB.saveProfile(profile);
 
       // Add to store
       addProfile(profile);
@@ -101,8 +109,14 @@ export function ProfileManager() {
 
       setIsAddDialogOpen(false);
       console.log('Profile added successfully');
+
+      // Automatically activate the new profile
+      await handleActivateProfile(profile);
     } catch (error) {
       console.error('Failed to add profile:', error);
+      setError(
+        'Failed to add profile. Please check your credentials and try again.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -110,21 +124,22 @@ export function ProfileManager() {
 
   const handleDeleteProfile = async (profileId: string) => {
     try {
-      await profileService.deleteProfile(profileId);
-      deleteProfile(profileId);
+      await profileServiceIndexedDB.deleteProfile(profileId);
+      await deleteProfile(profileId);
       console.log('Profile deleted successfully');
     } catch (error) {
       console.error('Failed to delete profile:', error);
+      setError('Failed to delete profile. Please try again.');
     }
   };
 
   const handleActivateProfile = async (profile: ProfileAccount) => {
     setIsLoading(true);
     try {
-      await tauriIPTVService.initializeWithProfile(profile);
+      await iptvDataService.initializeWithProfile(profile);
 
       // Test connection
-      const isConnected = await tauriIPTVService.testConnection();
+      const isConnected = await iptvDataService.testConnection();
       if (!isConnected) {
         console.error('Failed to connect to this profile');
         return;
@@ -132,11 +147,11 @@ export function ProfileManager() {
 
       // Get user profile and server info
       const [userProfile, serverInfo] = await Promise.all([
-        tauriIPTVService.getUserProfile(),
-        tauriIPTVService.getServerInfo()
+        iptvDataService.getUserProfile(),
+        iptvDataService.getServerInfo()
       ]);
 
-      // Update profile with last used timestamp and set as active
+      // Update profile with last used timestamp and user data
       const updatedProfile = {
         ...profile,
         isActive: true,
@@ -145,30 +160,24 @@ export function ProfileManager() {
         serverInfo
       };
 
-      // Deactivate all other profiles first
-      const allProfiles = profiles.map((p) => ({
-        ...p,
-        isActive: p.id === profile.id
-      }));
+      // Save updated profile
+      await profileServiceIndexedDB.saveProfile(updatedProfile);
 
-      // Save all profiles with updated active status
-      await Promise.all(allProfiles.map((p) => profileService.saveProfile(p)));
-
-      // Update store
-      setProfiles(allProfiles);
-
-      // Set as current profile
-      setCurrentProfile(profile.id);
-      setAuthenticated(true);
-      setUserProfile(userProfile);
-      setServerInfo(serverInfo);
+      // Set as current profile (this will handle deactivating others)
+      await setCurrentProfile(profile.id);
+      await setAuthenticated(true);
+      await setUserProfile(userProfile);
+      await setServerInfo(serverInfo);
 
       console.log(`Switched to profile: ${profile.name}`);
 
-      // Redirect to dashboard after successful activation
-      window.location.href = '/dashboard';
+      // Redirect to profile-specific dashboard after activation
+      router.push(`/dashboard/${profile.id}`);
     } catch (error) {
       console.error('Failed to activate profile:', error);
+      setError(
+        'Failed to activate profile. Please check your connection and try again.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -286,7 +295,14 @@ export function ProfileManager() {
                 </div>
               </div>
               <CardDescription>
-                {profile.config.username}@{new URL(profile.config.url).hostname}
+                {profile.config.username}@
+                {(() => {
+                  try {
+                    return new URL(profile.config.url).hostname;
+                  } catch {
+                    return 'invalid-url';
+                  }
+                })()}
               </CardDescription>
             </CardHeader>
             <CardContent>

@@ -110,7 +110,7 @@ export interface ShowDetails extends Show {
   youtubeTrailer?: string;
   tmdbId?: number;
   imdbId?: string;
-  episodes?: Episode[];
+  episodes?: { [season: number]: Episode[] };
 }
 
 export interface Episode {
@@ -162,22 +162,4 @@ export interface AppSettings {
   startWithSystem: boolean;
   enableNotifications: boolean;
   cacheSize: number;
-}
-
-export interface FavoriteItem {
-  id: string;
-  type: 'channel' | 'movie' | 'show';
-  name: string;
-  streamIcon?: string;
-  addedAt: string;
-}
-
-export interface WatchHistory {
-  id: string;
-  type: 'channel' | 'movie' | 'episode';
-  name: string;
-  streamIcon?: string;
-  watchedAt: string;
-  duration?: number;
-  position?: number;
 }

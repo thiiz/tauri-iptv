@@ -1,128 +1,129 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIPTVStore } from '@/lib/store';
-import { tauriIPTVService } from '@/lib/tauri-iptv-service';
 import type { Channel, Movie, Show } from '@/types/iptv';
-import {
-  Clock,
-  Film,
-  History,
-  MonitorPlay,
-  Play,
-  Star,
-  TrendingUp,
-  Tv
-} from 'lucide-react';
+import { Film, MonitorPlay, Play, TrendingUp, Tv } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { DownloadSection } from './download-section';
 
 export function DashboardOverview() {
   const {
     channelCategories,
     movieCategories,
     showCategories,
-    favorites,
-    watchHistory,
     userProfile,
     serverInfo,
-    setChannels,
-    setMovies,
-    setShows,
-    setCurrentView
+    channels,
+    movies,
+    shows,
+    contentDownloaded,
+    loadChannels,
+    loadMovies,
+    loadShows,
+    fetchChannels,
+    fetchMovies,
+    fetchShows,
+    setCurrentView,
+    checkContentDownloaded,
+    setError
   } = useIPTVStore();
 
   const [recentChannels, setRecentChannels] = useState<Channel[]>([]);
   const [recentMovies, setRecentMovies] = useState<Movie[]>([]);
   const [recentShows, setRecentShows] = useState<Show[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const loadRecentContent = async () => {
-      setIsLoading(true);
       try {
-        // Load recent channels, movies, and shows (limited)
-        const [channels, movies, shows] = await Promise.all([
-          tauriIPTVService.getChannels({ limit: 6 }),
-          tauriIPTVService.getMovies({ limit: 6 }),
-          tauriIPTVService.getShows({ limit: 6 }),
-        ]);
+        // Check download status first
+        await checkContentDownloaded();
 
-        setRecentChannels(channels);
-        setRecentMovies(movies);
-        setRecentShows(shows);
-
-        // Update store with full data
-        setChannels(channels);
-        setMovies(movies);
-        setShows(shows);
+        // Load content from IndexedDB only
+        await Promise.all([loadChannels(), loadMovies(), loadShows()]);
       } catch (error) {
-        console.error('Failed to load recent content:', error);
-      } finally {
-        setIsLoading(false);
+        toast.error(
+          'Failed to load recent content. Please try refreshing the page.'
+        );
+        setError(
+          'Failed to load recent content. Please try refreshing the page.'
+        );
       }
     };
 
     loadRecentContent();
-  }, [setChannels, setMovies, setShows]);
+  }, [loadChannels, loadMovies, loadShows, checkContentDownloaded]);
+
+  // Update local state when store state changes
+  useEffect(() => {
+    setRecentChannels(channels.slice(0, 6));
+    setRecentMovies(movies.slice(0, 6));
+    setRecentShows(shows.slice(0, 6));
+  }, [channels, movies, shows]);
 
   const stats = [
     {
-      title: 'Canais',
-      value: channelCategories.length,
+      title: 'Channels',
+      value: contentDownloaded.channels ? channelCategories.length : 0,
       icon: Tv,
-      description: 'Categorias disponíveis',
+      description: contentDownloaded.channels
+        ? 'Categories available'
+        : 'Download to view',
       color: 'text-blue-600',
-      bgColor: 'bg-blue-100 dark:bg-blue-900',
+      bgColor: 'bg-blue-100 dark:bg-blue-900'
     },
     {
-      title: 'Filmes',
-      value: movieCategories.length,
+      title: 'Movies',
+      value: contentDownloaded.movies ? movieCategories.length : 0,
       icon: Film,
-      description: 'Categorias de filmes',
+      description: contentDownloaded.movies
+        ? 'Movie categories'
+        : 'Download to view',
       color: 'text-green-600',
-      bgColor: 'bg-green-100 dark:bg-green-900',
+      bgColor: 'bg-green-100 dark:bg-green-900'
     },
     {
-      title: 'Séries',
-      value: showCategories.length,
+      title: 'Series',
+      value: contentDownloaded.shows ? showCategories.length : 0,
       icon: MonitorPlay,
-      description: 'Categorias de séries',
+      description: contentDownloaded.shows
+        ? 'Series categories'
+        : 'Download to view',
       color: 'text-purple-600',
-      bgColor: 'bg-purple-100 dark:bg-purple-900',
-    },
-    {
-      title: 'Favoritos',
-      value: favorites.length,
-      icon: Star,
-      description: 'Itens favoritados',
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-100 dark:bg-yellow-900',
-    },
+      bgColor: 'bg-purple-100 dark:bg-purple-900'
+    }
   ];
 
-  const recentHistory = watchHistory.slice(0, 5);
-
   return (
-    <div className="flex-1 space-y-6 p-6">
+    <div className='flex-1 space-y-6 p-6'>
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Bem-vindo de volta, {userProfile?.username || 'Usuário'}
+        <h1 className='text-3xl font-bold tracking-tight'>Dashboard</h1>
+        <p className='text-muted-foreground'>
+          Welcome back, {userProfile?.username || 'User'}
         </p>
       </div>
 
+      {/* Download Section */}
+      <DownloadSection />
+
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                <CardTitle className='text-sm font-medium'>
                   {stat.title}
                 </CardTitle>
                 <div className={`rounded-full p-2 ${stat.bgColor}`}>
@@ -130,8 +131,8 @@ export function DashboardOverview() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className='text-2xl font-bold'>{stat.value}</div>
+                <p className='text-muted-foreground text-xs'>
                   {stat.description}
                 </p>
               </CardContent>
@@ -140,220 +141,211 @@ export function DashboardOverview() {
         })}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Recent Channels */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Tv className="h-5 w-5" />
-              Canais Recentes
-            </CardTitle>
-            <CardDescription>
-              Últimos canais adicionados
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-48">
-              <div className="space-y-2">
-                {recentChannels.map((channel) => (
-                  <div
-                    key={channel.id}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      {channel.streamIcon ? (
-                        <img
-                          src={channel.streamIcon}
-                          alt={channel.name}
-                          className="h-8 w-8 rounded object-cover"
-                        />
-                      ) : (
-                        <div className="h-8 w-8 rounded bg-muted flex items-center justify-center">
-                          <Tv className="h-4 w-4" />
-                        </div>
-                      )}
-                      <div>
-                        <div className="font-medium text-sm">{channel.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Canal #{channel.id}
-                        </div>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="ghost">
-                      <Play className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-            <Button
-              variant="outline"
-              className="w-full mt-4"
-              onClick={() => setCurrentView('channels')}
-            >
-              Ver Todos os Canais
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Recent Movies */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Film className="h-5 w-5" />
-              Filmes Recentes
-            </CardTitle>
-            <CardDescription>
-              Últimos filmes adicionados
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-48">
-              <div className="space-y-2">
-                {recentMovies.map((movie) => (
-                  <div
-                    key={movie.id}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      {movie.streamIcon ? (
-                        <img
-                          src={movie.streamIcon}
-                          alt={movie.name}
-                          className="h-8 w-8 rounded object-cover"
-                        />
-                      ) : (
-                        <div className="h-8 w-8 rounded bg-muted flex items-center justify-center">
-                          <Film className="h-4 w-4" />
-                        </div>
-                      )}
-                      <div>
-                        <div className="font-medium text-sm">{movie.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {movie.year && `${movie.year} • `}
-                          {movie.rating && `⭐ ${movie.rating}`}
-                        </div>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="ghost">
-                      <Play className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-            <Button
-              variant="outline"
-              className="w-full mt-4"
-              onClick={() => setCurrentView('movies')}
-            >
-              Ver Todos os Filmes
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Watch History */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" />
-              Histórico Recente
-            </CardTitle>
-            <CardDescription>
-              Últimos itens assistidos
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-48">
-              <div className="space-y-2">
-                {recentHistory.length > 0 ? (
-                  recentHistory.map((item) => (
+      <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
+        {/* Recent Channels - Only show if downloaded */}
+        {contentDownloaded.channels && (
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <Tv className='h-5 w-5' />
+                Recent Channels
+              </CardTitle>
+              <CardDescription>Latest added channels</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className='h-48'>
+                <div className='space-y-2'>
+                  {recentChannels.map((channel) => (
                     <div
-                      key={`${item.type}-${item.id}`}
-                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted cursor-pointer"
+                      key={channel.id}
+                      className='hover:bg-muted flex cursor-pointer items-center justify-between rounded-lg p-2'
                     >
-                      <div className="flex items-center gap-3">
-                        {item.streamIcon ? (
+                      <div className='flex items-center gap-3'>
+                        {channel.streamIcon ? (
                           <img
-                            src={item.streamIcon}
-                            alt={item.name}
-                            className="h-8 w-8 rounded object-cover"
+                            src={channel.streamIcon}
+                            alt={channel.name}
+                            className='h-8 w-8 rounded object-cover'
                           />
                         ) : (
-                          <div className="h-8 w-8 rounded bg-muted flex items-center justify-center">
-                            {item.type === 'channel' && <Tv className="h-4 w-4" />}
-                            {item.type === 'movie' && <Film className="h-4 w-4" />}
-                            {item.type === 'episode' && <MonitorPlay className="h-4 w-4" />}
+                          <div className='bg-muted flex h-8 w-8 items-center justify-center rounded'>
+                            <Tv className='h-4 w-4' />
                           </div>
                         )}
                         <div>
-                          <div className="font-medium text-sm">{item.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            <Badge variant="secondary" className="text-xs">
-                              {item.type === 'channel' && 'Canal'}
-                              {item.type === 'movie' && 'Filme'}
-                              {item.type === 'episode' && 'Episódio'}
-                            </Badge>
-                            <span className="ml-2">
-                              {new Date(item.watchedAt).toLocaleDateString()}
-                            </span>
+                          <div className='text-sm font-medium'>
+                            {channel.name}
+                          </div>
+                          <div className='text-muted-foreground text-xs'>
+                            Channel #{channel.id}
                           </div>
                         </div>
                       </div>
-                      <Button size="sm" variant="ghost">
-                        <Play className="h-4 w-4" />
+                      <Button size='sm' variant='ghost'>
+                        <Play className='h-4 w-4' />
                       </Button>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center text-muted-foreground py-8">
-                    <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>Nenhum histórico ainda</p>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-            {recentHistory.length > 0 && (
+                  ))}
+                </div>
+              </ScrollArea>
               <Button
-                variant="outline"
-                className="w-full mt-4"
-                onClick={() => setCurrentView('history')}
+                variant='outline'
+                className='mt-4 w-full'
+                onClick={() => setCurrentView('channels')}
               >
-                Ver Histórico Completo
+                View All Channels
               </Button>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recent Movies - Only show if downloaded */}
+        {contentDownloaded.movies && (
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <Film className='h-5 w-5' />
+                Recent Movies
+              </CardTitle>
+              <CardDescription>Latest added movies</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className='h-48'>
+                <div className='space-y-2'>
+                  {recentMovies.map((movie) => (
+                    <div
+                      key={movie.id}
+                      className='hover:bg-muted flex cursor-pointer items-center justify-between rounded-lg p-2'
+                    >
+                      <div className='flex items-center gap-3'>
+                        {movie.streamIcon ? (
+                          <img
+                            src={movie.streamIcon}
+                            alt={movie.name}
+                            className='h-8 w-8 rounded object-cover'
+                          />
+                        ) : (
+                          <div className='bg-muted flex h-8 w-8 items-center justify-center rounded'>
+                            <Film className='h-4 w-4' />
+                          </div>
+                        )}
+                        <div>
+                          <div className='text-sm font-medium'>
+                            {movie.name}
+                          </div>
+                          <div className='text-muted-foreground text-xs'>
+                            {movie.year && `${movie.year} • `}
+                            {movie.rating && `⭐ ${movie.rating}`}
+                          </div>
+                        </div>
+                      </div>
+                      <Button size='sm' variant='ghost'>
+                        <Play className='h-4 w-4' />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              <Button
+                variant='outline'
+                className='mt-4 w-full'
+                onClick={() => setCurrentView('movies')}
+              >
+                View All Movies
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recent Shows - Only show if downloaded */}
+        {contentDownloaded.shows && (
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <MonitorPlay className='h-5 w-5' />
+                Recent Series
+              </CardTitle>
+              <CardDescription>Latest added series</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className='h-48'>
+                <div className='space-y-2'>
+                  {recentShows.map((show) => (
+                    <div
+                      key={show.id}
+                      className='hover:bg-muted flex cursor-pointer items-center justify-between rounded-lg p-2'
+                    >
+                      <div className='flex items-center gap-3'>
+                        {show.streamIcon ? (
+                          <img
+                            src={show.streamIcon}
+                            alt={show.name}
+                            className='h-8 w-8 rounded object-cover'
+                          />
+                        ) : (
+                          <div className='bg-muted flex h-8 w-8 items-center justify-center rounded'>
+                            <MonitorPlay className='h-4 w-4' />
+                          </div>
+                        )}
+                        <div>
+                          <div className='text-sm font-medium'>{show.name}</div>
+                          <div className='text-muted-foreground text-xs'>
+                            {show.year && `${show.year} • `}
+                            {show.rating && `⭐ ${show.rating}`}
+                          </div>
+                        </div>
+                      </div>
+                      <Button size='sm' variant='ghost'>
+                        <Play className='h-4 w-4' />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              <Button
+                variant='outline'
+                className='mt-4 w-full'
+                onClick={() => setCurrentView('shows')}
+              >
+                View All Series
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Server Info */}
       {serverInfo && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Informações do Servidor
+            <CardTitle className='flex items-center gap-2'>
+              <TrendingUp className='h-5 w-5' />
+              Server Information
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
               <div>
-                <div className="text-sm font-medium">Servidor</div>
-                <div className="text-2xl font-bold">{serverInfo.url}</div>
+                <div className='text-sm font-medium'>Server</div>
+                <div className='text-2xl font-bold'>{serverInfo.url}</div>
               </div>
               <div>
-                <div className="text-sm font-medium">Protocolo</div>
-                <div className="text-2xl font-bold">{serverInfo.serverProtocol}</div>
+                <div className='text-sm font-medium'>Protocol</div>
+                <div className='text-2xl font-bold'>
+                  {serverInfo.serverProtocol}
+                </div>
               </div>
               <div>
-                <div className="text-sm font-medium">Timezone</div>
-                <div className="text-2xl font-bold">{serverInfo.timezone}</div>
+                <div className='text-sm font-medium'>Timezone</div>
+                <div className='text-2xl font-bold'>{serverInfo.timezone}</div>
               </div>
               <div>
-                <div className="text-sm font-medium">Status</div>
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                  <span className="text-sm font-medium text-green-600">Online</span>
+                <div className='text-sm font-medium'>Status</div>
+                <div className='flex items-center gap-2'>
+                  <div className='h-2 w-2 rounded-full bg-green-500'></div>
+                  <span className='text-sm font-medium text-green-600'>
+                    Online
+                  </span>
                 </div>
               </div>
             </div>

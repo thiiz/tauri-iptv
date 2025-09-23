@@ -11,11 +11,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { profileService } from '@/lib/profile-service';
+import { iptvDataService } from '@/lib/iptv-data-service';
 import { useIPTVStore } from '@/lib/store';
-import { tauriIPTVService } from '@/lib/tauri-iptv-service';
 import { ChevronDown, Plus, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 interface ProfileSwitcherProps {
   onManageProfiles?: () => void;
@@ -34,21 +34,24 @@ export function ProfileSwitcher({ onManageProfiles }: ProfileSwitcherProps) {
   } = useIPTVStore();
 
   const [isLoading, setIsLoading] = useState(false);
-  const currentProfile = getCurrentProfile();
+  const [currentProfile, setCurrentProfileState] = useState<any>(null);
 
-  // Load profiles on mount
+  // Get current profile asynchronously
   useEffect(() => {
-    const loadProfiles = async () => {
-      try {
-        const savedProfiles = await profileService.getProfiles();
-        setProfiles(savedProfiles);
-      } catch (error) {
-        console.error('Failed to load profiles:', error);
+    const fetchCurrentProfile = async () => {
+      if (currentProfileId) {
+        const profile = await getCurrentProfile();
+        setCurrentProfileState(profile);
+      } else {
+        setCurrentProfileState(null);
       }
     };
 
-    loadProfiles();
-  }, [setProfiles]);
+    fetchCurrentProfile();
+  }, [currentProfileId, getCurrentProfile]);
+
+  // Profiles are now loaded by useProfileInitialization hook
+  // No need to load them here again
 
   const handleSwitchProfile = async (profileId: string) => {
     if (profileId === currentProfileId) return;
@@ -58,30 +61,30 @@ export function ProfileSwitcher({ onManageProfiles }: ProfileSwitcherProps) {
 
     setIsLoading(true);
     try {
-      await tauriIPTVService.initializeWithProfile(profile);
+      await iptvDataService.initializeWithProfile(profile);
 
       // Test connection
-      const isConnected = await tauriIPTVService.testConnection();
+      const isConnected = await iptvDataService.testConnection();
       if (!isConnected) {
-        console.error('Failed to connect to this profile');
+        toast.error('Failed to connect to this profile');
         return;
       }
 
       // Get user profile and server info
       const [userProfile, serverInfo] = await Promise.all([
-        tauriIPTVService.getUserProfile(),
-        tauriIPTVService.getServerInfo()
+        iptvDataService.getUserProfile(),
+        iptvDataService.getServerInfo()
       ]);
 
       // Set as current profile
-      setCurrentProfile(profile.id);
-      setAuthenticated(true);
-      setUserProfile(userProfile);
-      setServerInfo(serverInfo);
+      await setCurrentProfile(profile.id);
+      await setAuthenticated(true);
+      await setUserProfile(userProfile);
+      await setServerInfo(serverInfo);
 
-      console.log(`Switched to ${profile.name}`);
+      toast.success(`Switched to ${profile.name}`);
     } catch (error) {
-      console.error('Failed to switch profile:', error);
+      toast.error('Failed to switch profile. Please try again.');
     } finally {
       setIsLoading(false);
     }
