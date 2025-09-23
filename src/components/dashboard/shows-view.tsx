@@ -1,24 +1,11 @@
 'use client';
 
+import { ContentView } from '@/components/dashboard/content-view';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useIPTVStore } from '@/lib/store';
 import type { Show } from '@/types/iptv';
-import { Grid3X3, List, MonitorPlay, Play, Search } from 'lucide-react';
+import { MonitorPlay } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 
 export default function ShowsView() {
   const router = useRouter();
@@ -28,219 +15,69 @@ export default function ShowsView() {
     shows,
     loadShows,
     loadShowCategories,
-    fetchShows,
     selectedCategory,
     setSelectedCategory,
     contentDownloaded
   } = useIPTVStore();
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [isLoading, setIsLoading] = useState(false);
-  const [filteredShows, setFilteredShows] = useState<Show[]>([]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        // Load categories and shows from IndexedDB
-        await loadShowCategories();
-        await loadShows(selectedCategory || undefined);
-      } catch (error) {
-        toast.error('Failed to load shows. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [selectedCategory, loadShows, loadShowCategories]);
-
-  useEffect(() => {
-    let filtered = shows;
-    if (searchQuery) {
-      filtered = filtered.filter((show) =>
-        show.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    setFilteredShows(filtered);
-  }, [shows, searchQuery]);
 
   const handleViewShow = (show: Show) => {
     // Navigate to series details page
     router.push(`/dashboard/${currentProfileId}/series/${show.id}`);
   };
 
-  return (
-    <div className='flex flex-1 flex-col'>
-      <div className='border-b p-6'>
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-3xl font-bold tracking-tight'>Series</h1>
-            <p className='text-muted-foreground'>
-              {filteredShows.length} series available
-            </p>
+  const renderShowItem = (show: Show) => (
+    <>
+      <div className='mb-3'>
+        {show.streamIcon ? (
+          <img
+            src={show.streamIcon}
+            alt={show.name}
+            className='h-32 w-full rounded object-cover'
+          />
+        ) : (
+          <div className='bg-muted flex h-32 w-full items-center justify-center rounded'>
+            <MonitorPlay className='text-muted-foreground h-8 w-8' />
           </div>
-
-          <div className='flex items-center gap-2'>
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
-              size='sm'
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid3X3 className='h-4 w-4' />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
-              size='sm'
-              onClick={() => setViewMode('list')}
-            >
-              <List className='h-4 w-4' />
-            </Button>
-          </div>
-        </div>
-
-        <div className='mt-4 flex gap-4'>
-          <div className='relative max-w-sm flex-1'>
-            <Search className='text-muted-foreground absolute top-2.5 left-2 h-4 w-4' />
-            <Input
-              placeholder='Search series...'
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className='pl-8'
-            />
-          </div>
-
-          <Select
-            value={selectedCategory || 'all'}
-            onValueChange={(value) =>
-              setSelectedCategory(value === 'all' ? null : value)
-            }
-          >
-            <SelectTrigger className='w-48'>
-              <SelectValue placeholder='Categoria' />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value='all'>All categories</SelectItem>
-              {showCategories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        )}
       </div>
 
-      <ScrollArea className='flex-1'>
-        <div className='p-6'>
-          {isLoading ? (
-            <div
-              className={
-                viewMode === 'grid'
-                  ? 'grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
-                  : 'space-y-2'
-              }
-            >
-              {Array.from({ length: 10 }).map((_, i) => (
-                <Card
-                  key={i}
-                  className='group cursor-pointer transition-all hover:shadow-md'
-                >
-                  <CardContent className='p-4'>
-                    <div className='mb-3'>
-                      <Skeleton className='h-32 w-full rounded object-cover' />
-                    </div>
-                    <div className='text-center'>
-                      <Skeleton className='mx-auto mb-1 h-4 w-3/4' />
-                      <div className='mb-3 flex items-center justify-center gap-2'>
-                        <Skeleton className='h-3 w-8' />
-                        <Skeleton className='h-3 w-12' />
-                      </div>
-                    </div>
-                    <div className='flex gap-2'>
-                      <Skeleton className='h-8 flex-1' />
-                      <Skeleton className='h-8 w-8' />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : filteredShows.length === 0 ? (
-            <div className='py-12 text-center'>
-              <MonitorPlay className='text-muted-foreground mx-auto mb-4 h-12 w-12' />
-              <h3 className='mb-2 text-lg font-semibold'>
-                {searchQuery ? 'No series found' : 'No series available'}
-              </h3>
-              <p className='text-muted-foreground'>
-                {searchQuery
-                  ? 'Try adjusting your search'
-                  : 'Download content from the home page to view series'}
-              </p>
-            </div>
-          ) : (
-            <div
-              className={
-                viewMode === 'grid'
-                  ? 'grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
-                  : 'space-y-2'
-              }
-            >
-              {filteredShows.map((show) => (
-                <Card
-                  key={show.id}
-                  className='group cursor-pointer transition-all hover:shadow-md'
-                >
-                  <CardContent className='p-4'>
-                    <div className='mb-3'>
-                      {show.streamIcon ? (
-                        <img
-                          src={show.streamIcon}
-                          alt={show.name}
-                          className='h-32 w-full rounded object-cover'
-                        />
-                      ) : (
-                        <div className='bg-muted flex h-32 w-full items-center justify-center rounded'>
-                          <MonitorPlay className='text-muted-foreground h-8 w-8' />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className='text-center'>
-                      <h3 className='mb-1 truncate text-sm font-semibold'>
-                        {show.name}
-                      </h3>
-                      <div className='mb-3 flex items-center justify-center gap-2'>
-                        {show.year && (
-                          <Badge variant='secondary' className='text-xs'>
-                            {show.year}
-                          </Badge>
-                        )}
-                        {show.rating && (
-                          <Badge variant='outline' className='text-xs'>
-                            ⭐ {show.rating}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className='flex gap-2'>
-                      <Button
-                        size='sm'
-                        onClick={() => handleViewShow(show)}
-                        className='flex-1'
-                      >
-                        <Play className='mr-1 h-4 w-4' />
-                        View Series
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+      <div className='text-center'>
+        <h3 className='mb-1 truncate text-sm font-semibold'>{show.name}</h3>
+        <div className='mb-3 flex items-center justify-center gap-2'>
+          {show.year && (
+            <Badge variant='secondary' className='text-xs'>
+              {show.year}
+            </Badge>
+          )}
+          {show.rating && (
+            <Badge variant='outline' className='text-xs'>
+              ⭐ {show.rating}
+            </Badge>
           )}
         </div>
-      </ScrollArea>
-    </div>
+      </div>
+    </>
+  );
+
+  return (
+    <ContentView
+      title='Series'
+      searchPlaceholder='Search series...'
+      emptyState={{
+        icon: MonitorPlay,
+        title: 'No series available',
+        description: 'Download content from the home page to view series'
+      }}
+      categories={showCategories}
+      items={shows}
+      loadCategories={loadShowCategories}
+      loadItems={(category) => loadShows(category || undefined)}
+      selectedCategory={selectedCategory}
+      setSelectedCategory={setSelectedCategory}
+      renderItem={renderShowItem}
+      handleAction={handleViewShow}
+      actionLabel='View Series'
+      contentDownloaded={contentDownloaded.shows}
+    />
   );
 }

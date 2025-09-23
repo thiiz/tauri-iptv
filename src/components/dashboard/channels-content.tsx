@@ -1,10 +1,10 @@
 'use client';
 
-import { useChannels } from '@/hooks/useChannels';
-import { useIPTVStore } from '@/lib/store';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Button } from '@/components/ui/button';
-import { Tv, Play } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useContent } from '@/hooks/useContent';
+import { useIPTVStore } from '@/lib/store';
+import { Play, Tv } from 'lucide-react';
 
 interface ChannelsContentProps {
   categoryId?: string;
@@ -16,7 +16,12 @@ export function ChannelsContent({
   autoFetch = false
 }: ChannelsContentProps) {
   const { contentDownloaded } = useIPTVStore();
-  const { channels, isLoading, error, fetchChannels } = useChannels({
+  const {
+    content: channels,
+    isLoading,
+    error,
+    fetchContent: fetchChannels
+  } = useContent('channels', {
     categoryId,
     autoFetch: autoFetch && contentDownloaded.channels, // Only auto-fetch if content is downloaded
     localOnly: true

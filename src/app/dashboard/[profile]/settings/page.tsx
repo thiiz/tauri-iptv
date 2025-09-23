@@ -1,6 +1,6 @@
 import { SettingsContent } from '@/components/dashboard/settings-content';
+import { profileService } from '@/lib/services';
 import { notFound } from 'next/navigation';
-import { profileService } from '@/lib/profile-service';
 
 interface SettingsPageProps {
   params: Promise<{

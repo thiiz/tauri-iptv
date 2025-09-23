@@ -1,5 +1,5 @@
-import { profileServiceIndexedDB } from './profile-service-indexeddb';
 import type { ProfileAccount, XtreamConfig } from '@/types/iptv';
+import { profileServiceIndexedDB } from '../profile-service-indexeddb';
 
 export class ProfileService {
   private static instance: ProfileService;

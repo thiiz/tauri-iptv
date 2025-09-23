@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { profileService } from '@/lib/profile-service';
-import { ProfileAccount } from '@/types/iptv';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { profileService } from '@/lib/services';
+import { ProfileAccount } from '@/types/iptv';
+import { useEffect, useState } from 'react';
 
 interface SettingsContentProps {
   profileId: string;

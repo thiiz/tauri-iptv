@@ -1,10 +1,10 @@
 'use client';
 
-import { useMovies } from '@/hooks/useMovies';
-import { useIPTVStore } from '@/lib/store';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Button } from '@/components/ui/button';
-import { Play, Film } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useContent } from '@/hooks/useContent';
+import { useIPTVStore } from '@/lib/store';
+import { Film, Play } from 'lucide-react';
 
 interface MoviesContentProps {
   categoryId?: string;
@@ -16,7 +16,12 @@ export function MoviesContent({
   autoFetch = false
 }: MoviesContentProps) {
   const { contentDownloaded } = useIPTVStore();
-  const { movies, isLoading, error, fetchMovies } = useMovies({
+  const {
+    content: movies,
+    isLoading,
+    error,
+    fetchContent: fetchMovies
+  } = useContent('movies', {
     categoryId,
     autoFetch: autoFetch && contentDownloaded.movies, // Only auto-fetch if content is downloaded
     localOnly: true
