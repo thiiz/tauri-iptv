@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { iptvDataService } from '@/lib/iptv-data-service';
 import type { Episode, ShowDetails } from '@/types/iptv';
 import { ArrowLeft, Calendar, Clock, Play } from 'lucide-react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -151,9 +152,11 @@ export default function SeasonEpisodesPage() {
                         {/* Episode Thumbnail */}
                         <div className='flex-shrink-0'>
                           {episode.info?.movieImage ? (
-                            <img
+                            <Image
                               src={episode.info.movieImage}
                               alt={episode.title}
+                              width={128}
+                              height={80}
                               className='h-20 w-32 rounded-lg object-cover'
                             />
                           ) : (
